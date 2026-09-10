@@ -1,0 +1,141 @@
+<p class="page-intro hq-muted">
+  Cross-organization view of feature access — what each customer gets from their plan, plus any manual overrides.
+  Manage overrides per org from the organization detail <strong>Features</strong> tab.
+</p>
+
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
+  <button type="button" [class.active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</button>
+</app-hq-page-tabs>
+
+@if (tab() === 'overview') {
+  <section class="page-summary cols-3">
+    <article class="page-kpi tone-blue">
+      <span>Organizations</span>
+      <strong>{{ summary().organizations }}</strong>
+    </article>
+    <article class="page-kpi tone-amber">
+      <span>With overrides</span>
+      <strong>{{ summary().withOverrides }}</strong>
+    </article>
+    <article class="page-kpi">
+      <span>Features in catalogue</span>
+      <strong>{{ summary().featureCatalogue }}</strong>
+    </article>
+  </section>
+
+  <section class="page-toolbar">
+    <div class="search-box">
+      <input type="search" placeholder="Search organizations..." [value]="search()" (input)="search.set($any($event.target).value)" />
+    </div>
+    <app-hq-select [options]="orgOptions()" [value]="orgFilter()" minWidth="200px" (valueChange)="orgFilter.set($event)" />
+  </section>
+
+  <section class="hq-card table-card">
+    <div class="table-head">
+      <div>
+        <h2 class="hq-section-title">By organization</h2>
+        <p class="hq-muted">{{ rows().length }} organization{{ rows().length === 1 ? '' : 's' }} · click a row for the full feature breakdown</p>
+      </div>
+    </div>
+
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Plan</th>
+            <th>Features enabled</th>
+            <th>Overrides</th>
+            <th class="actions-col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.org.id) {
+            <tr class="clickable" tabindex="0" (click)="openDetail(row.org.id)" (keydown.enter)="openDetail(row.org.id)">
+              <td>
+                <div class="org-cell">
+                  <div class="logo">{{ row.org.name.slice(0, 2).toUpperCase() }}</div>
+                  <strong>{{ row.org.name }}</strong>
+                </div>
+              </td>
+              <td>{{ data.getPlan(row.org.planId)?.name }}</td>
+              <td class="meter-cell">
+                <span>{{ row.enabled }} / {{ row.total }}</span>
+                <div class="usage-meter" [attr.data-tone]="meterTone(row.ratio)">
+                  <div [style.width.%]="row.ratio * 100"></div>
+                </div>
+              </td>
+              <td>
+                @if (row.overrides > 0) {
+                  <span class="hq-badge hq-badge-past_due">{{ row.overrides }} override{{ row.overrides === 1 ? '' : 's' }}</span>
+                } @else {
+                  <span class="hq-muted">—</span>
+                }
+              </td>
+              <td class="actions-col">
+                <a [routerLink]="['/organizations', row.org.id]" fragment="features" (click)="$event.stopPropagation()">Manage</a>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5"><app-hq-empty-state title="No organizations match" description="Try adjusting your search or filter." /></td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+} @else {
+  <section class="hq-card panel activity-panel">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Override &amp; entitlement activity</h3>
+        <p class="hq-muted">Feature overrides and entitlement changes across organizations.</p>
+      </div>
+    </div>
+    <div class="activity-timeline">
+      @for (event of entitlementActivity(); track event.id) {
+        <div class="activity-row">
+          <div class="activity-dot" [attr.data-result]="event.result"></div>
+          <div class="activity-body">
+            <div class="activity-top">
+              <strong>{{ event.action }}</strong>
+              <span [class]="'hq-badge ' + (event.result === 'success' ? 'hq-badge-active' : event.result === 'failed' ? 'hq-badge-cancelled' : 'hq-badge-past_due')">{{ event.result }}</span>
+            </div>
+            <p class="hq-muted">{{ event.description }}</p>
+            <span class="activity-meta">{{ event.actor }} · {{ event.target }} · {{ event.timestamp | date: 'medium' }}</span>
+          </div>
+        </div>
+      } @empty {
+        <app-hq-empty-state title="No entitlement activity" description="Feature overrides and changes will appear here." />
+      }
+    </div>
+  </section>
+}
+
+@if (selectedRow(); as row) {
+  <div class="hq-drawer-backdrop" (click)="closeDetail()">
+    <aside class="hq-drawer" (click)="$event.stopPropagation()">
+      <div class="hq-drawer-head">
+        <div>
+          <h3>{{ row.org.name }}</h3>
+          <p class="hq-muted">{{ data.getPlan(row.org.planId)?.name }} · {{ row.enabled }}/{{ row.total }} features enabled</p>
+        </div>
+        <button type="button" class="hq-drawer-close" (click)="closeDetail()" aria-label="Close">×</button>
+      </div>
+      <div class="hq-drawer-body feature-list">
+        @for (item of row.effective; track item.feature.id) {
+          <div class="feature-row">
+            <div>
+              <strong>{{ item.feature.name }}</strong>
+              <span class="source">{{ item.source === 'override' ? 'Manual override' : 'Included in plan' }}</span>
+            </div>
+            <span [class]="'hq-badge ' + (item.enabled ? 'hq-badge-active' : 'hq-badge-archived')">{{ item.enabled ? 'On' : 'Off' }}</span>
+          </div>
+        }
+      </div>
+      <div class="hq-drawer-foot">
+        <a class="hq-btn hq-btn-primary" hqRequirePermission="features" [routerLink]="['/organizations', row.org.id]" fragment="features" (click)="closeDetail()">Manage overrides</a>
+      </div>
+    </aside>
+  </div>
+}

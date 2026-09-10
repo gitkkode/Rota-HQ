@@ -1,0 +1,66 @@
+<section class="auth-card">
+  <div class="auth-card-head">
+    <h2>Create account</h2>
+    <p>Register for mock platform access. No email verification required.</p>
+  </div>
+
+  <form class="auth-form" (submit)="submit($event)" novalidate>
+    @if (error()) {
+      <div class="auth-error" role="alert">{{ error() }}</div>
+    }
+
+    <label>
+      Full name <span class="req">*</span>
+      <input
+        type="text"
+        autocomplete="name"
+        placeholder="Jane Operator"
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+    </label>
+
+    <label>
+      Work email <span class="req">*</span>
+      <input
+        type="email"
+        autocomplete="email"
+        placeholder="you@company.com"
+        [value]="email()"
+        (input)="email.set($any($event.target).value)"
+      />
+    </label>
+
+    <label>
+      Password <span class="req">*</span>
+      <input
+        type="password"
+        autocomplete="new-password"
+        placeholder="At least 8 characters"
+        [value]="password()"
+        (input)="password.set($any($event.target).value)"
+      />
+    </label>
+
+    <label>
+      Confirm password <span class="req">*</span>
+      <input
+        type="password"
+        autocomplete="new-password"
+        placeholder="Re-enter password"
+        [class.invalid]="confirmPassword() && !passwordsMatch()"
+        [value]="confirmPassword()"
+        (input)="confirmPassword.set($any($event.target).value)"
+      />
+    </label>
+
+    <button class="hq-btn hq-btn-primary auth-submit" type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Creating account…' : 'Create account' }}
+    </button>
+  </form>
+
+  <p class="auth-foot">
+    Already have an account?
+    <a class="auth-link" routerLink="/auth/login">Sign in</a>
+  </p>
+</section>

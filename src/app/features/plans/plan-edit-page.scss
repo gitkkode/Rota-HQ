@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+.panel {
+  padding: 1.25rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.warn {
+  color: #dc2626;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .actions .hq-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

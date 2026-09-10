@@ -1,0 +1,164 @@
+@if (compactLayout() && sidebarOpen()) {
+  <button
+    class="sidebar-backdrop"
+    type="button"
+    aria-label="Close navigation"
+    (click)="closeMobileNav()"
+  ></button>
+}
+
+<aside
+  id="hq-sidebar"
+  class="sidebar"
+  [class.collapsed]="!sidebarOpen() && !compactLayout()"
+  [class.open]="compactLayout() && sidebarOpen()"
+  [attr.aria-hidden]="compactLayout() && !sidebarOpen() ? 'true' : null"
+  [attr.inert]="compactLayout() && !sidebarOpen() ? true : null"
+  aria-label="Main navigation"
+>
+  <a class="brand" routerLink="/dashboard" (click)="onNavNavigate()">
+    <div class="brand-mark">
+      <app-hq-icon name="dashboard" [size]="20" />
+    </div>
+    @if (sidebarOpen() || compactLayout()) {
+      <div class="brand-text">
+        <strong>Workforce</strong>
+        <span>HQ</span>
+      </div>
+    }
+  </a>
+
+  <nav class="nav" #navEl>
+    <div
+      class="nav-indicator"
+      [class.ready]="indicatorReady()"
+      [class.collapsed-mode]="!sidebarOpen() && !compactLayout()"
+      [style.top.px]="indicatorTop()"
+      [style.height.px]="indicatorHeight()"
+    ></div>
+
+    @for (item of navItems(); track item.path) {
+      <a
+        #navLink
+        class="nav-item"
+        [class.active]="isActive(item.path)"
+        [routerLink]="item.path"
+        (click)="onNavNavigate()"
+      >
+        <app-hq-icon class="nav-icon" [name]="item.icon" [size]="20" />
+        @if (sidebarOpen() || compactLayout()) {
+          <span class="nav-label">{{ item.label }}</span>
+        }
+      </a>
+    }
+  </nav>
+</aside>
+
+<div class="main" [class.expanded]="!sidebarOpen()">
+  <div class="main-chrome">
+    @if (data.activeSupportSession(); as support) {
+      <div class="support-banner">
+        <div>
+          <strong>Temporary support session active</strong>
+          <span>
+            {{ data.getOrganization(support.organizationId)?.name }} · {{ support.targetUserName }} ·
+            expires {{ support.endsAt | date: 'shortTime' }}
+          </span>
+        </div>
+        <button type="button" (click)="endSupport()">Exit session</button>
+      </div>
+    }
+
+    <header class="topbar">
+    <div class="topbar-left">
+      <button
+        class="icon-btn toggle-btn"
+        type="button"
+        (click)="toggleSidebar()"
+        [attr.aria-expanded]="sidebarOpen()"
+        aria-controls="hq-sidebar"
+        [attr.aria-label]="sidebarOpen() ? 'Collapse sidebar' : 'Expand sidebar'"
+      >
+        <app-hq-icon [name]="sidebarOpen() ? 'panel-left' : 'panel-right'" [size]="20" />
+      </button>
+      <div class="title-block">
+        <h1>{{ pageTitle() }}</h1>
+        @if (isDashboard()) {
+          <p>Welcome back, {{ auth.firstName() }}! Here's what's happening on your platform.</p>
+        }
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <form (submit)="submitSearch($event)">
+        <app-hq-icon class="search-icon" name="search" [size]="20" />
+        <input
+          class="hq-input"
+          type="search"
+          placeholder="Search organizations, users, plans..."
+          [value]="searchQuery()"
+          (input)="onSearch($any($event.target).value)"
+        />
+      </form>
+    </div>
+
+    <div class="topbar-right">
+      @if (perms.canRead('settings')) {
+        <a class="icon-btn notify" routerLink="/notifications" aria-label="Notifications">
+          <app-hq-icon name="bell" [size]="20" />
+          @if (data.unreadNotificationCount(); as unread) {
+            @if (unread > 0) {
+              <span class="badge-count">{{ unread }}</span>
+            }
+          }
+        </a>
+      }
+      @if (perms.canRead('support')) {
+        <a class="icon-btn" routerLink="/support" aria-label="Help">
+          <app-hq-icon name="messages" [size]="20" />
+        </a>
+      }
+      <div class="profile-wrap">
+        <button
+          class="topbar-user"
+          type="button"
+          (click)="toggleProfileMenu()"
+          [attr.aria-expanded]="profileMenuOpen()"
+          aria-haspopup="true"
+          aria-label="Account menu"
+        >
+          <div class="avatar">{{ auth.initials() }}</div>
+          <div class="topbar-user-meta">
+            <strong>{{ auth.currentUser()?.name ?? 'User' }}</strong>
+            <span>{{ auth.currentUser()?.role ?? 'Admin' }}</span>
+          </div>
+          <app-hq-icon class="topbar-user-chevron" name="chevron-down" [size]="14" />
+        </button>
+        @if (profileMenuOpen()) {
+          <div class="profile-menu topbar-menu hq-popover" role="menu">
+            @if (perms.canRead('settings')) {
+              <button class="hq-popover-item" type="button" role="menuitem" (click)="navigateFromProfile('/platform')">
+                Platform settings
+              </button>
+            }
+            @if (perms.canRead('security')) {
+              <button class="hq-popover-item" type="button" role="menuitem" (click)="navigateFromProfile('/security')">
+                Security
+              </button>
+            }
+            <button class="hq-popover-item" type="button" role="menuitem" (click)="signOut()">
+              Sign out
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+    </header>
+  </div>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>
+
+<app-hq-toast-container />

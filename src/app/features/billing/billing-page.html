@@ -1,0 +1,667 @@
+<p class="page-intro hq-muted">
+  Revenue, invoices, payments, and gateway configuration — mock data only, no live payment processing.
+</p>
+
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'overview'" (click)="setTab('overview')">Overview</button>
+  <button type="button" [class.active]="tab() === 'invoices'" (click)="setTab('invoices')">Invoices</button>
+  <button type="button" [class.active]="tab() === 'payments'" (click)="setTab('payments')">Payments</button>
+  <button type="button" [class.active]="tab() === 'activity'" (click)="setTab('activity')">Activity</button>
+  <button type="button" [class.active]="tab() === 'gateway'" (click)="setTab('gateway')">Payment gateway</button>
+</app-hq-page-tabs>
+
+@if (tab() === 'overview') {
+  <section class="page-summary">
+    <article class="page-kpi tone-teal">
+      <span>Total revenue</span>
+      <strong>{{ summary().totalRevenue | hqCurrency }}</strong>
+    </article>
+    <article class="page-kpi tone-orange">
+      <span>Open invoices</span>
+      <strong>{{ summary().openInvoices }}</strong>
+    </article>
+    <article class="page-kpi tone-red">
+      <span>Failed payments</span>
+      <strong>{{ summary().failedPayments }}</strong>
+    </article>
+    <article class="page-kpi">
+      <span>Refunds</span>
+      <strong>{{ summary().refunded }}</strong>
+    </article>
+  </section>
+
+  <section class="overview-grid">
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Recent failed payments</h3>
+      <div class="mini-list">
+        @for (pay of failedPayments(); track pay.id) {
+          <button class="mini-item link" type="button" (click)="openPayment(pay)">
+            <div>
+              <strong>{{ data.getOrganization(pay.organizationId)?.name }}</strong>
+              <p class="hq-muted">{{ pay.failureReason }}</p>
+            </div>
+            <span class="amount warn">{{ pay.amount | hqCurrency }}</span>
+          </button>
+        } @empty {
+          <p class="hq-muted empty-msg">No failed payments.</p>
+        }
+      </div>
+    </article>
+
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Past due invoices</h3>
+      <div class="mini-list">
+        @for (inv of pastDueInvoices(); track inv.id) {
+          <div class="mini-item">
+            <button class="mini-main link" type="button" (click)="openInvoice(inv)">
+              <div>
+                <strong>{{ inv.number }}</strong>
+                <p class="hq-muted">{{ data.getOrganization(inv.organizationId)?.name }}</p>
+              </div>
+            </button>
+            <div class="item-actions">
+              <span>{{ inv.amount | hqCurrency }}</span>
+              <button class="icon-btn pdf" type="button" title="Download PDF" (click)="downloadInvoice(inv.id, $event)">
+                <app-hq-icon name="file-pdf" [size]="14" />
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <p class="hq-muted empty-msg">No past due invoices.</p>
+        }
+      </div>
+    </article>
+
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Credits &amp; refunds</h3>
+      <div class="mini-list">
+        @for (pay of refundedPayments(); track pay.id) {
+          <button class="mini-item link" type="button" (click)="openPayment(pay)">
+            <div>
+              <strong>{{ data.getOrganization(pay.organizationId)?.name }}</strong>
+              <p class="hq-muted">{{ pay.processedAt | date: 'mediumDate' }} · {{ pay.method }}</p>
+            </div>
+            <span class="refund">−{{ pay.amount | hqCurrency }}</span>
+          </button>
+        } @empty {
+          <p class="hq-muted empty-msg">No refunds recorded.</p>
+        }
+      </div>
+    </article>
+  </section>
+
+  <section class="hq-card panel activity-panel">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Billing activity</h3>
+        <p class="hq-muted">Recent invoice, payment, and gateway events.</p>
+      </div>
+      <button class="hq-btn hq-btn-ghost" type="button" (click)="setTab('activity')">View all</button>
+    </div>
+    <div class="hq-table-wrap activity-preview-table">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of recentActivity(); track event.id) {
+            <tr class="clickable" tabindex="0" (click)="setTab('activity')" (keydown.enter)="setTab('activity')">
+              <td class="activity-time">{{ event.timestamp | date: 'MMM d, y · h:mm a' }}</td>
+              <td><strong>{{ event.action }}</strong></td>
+              <td>{{ event.target }}</td>
+              <td><span [class]="'hq-badge ' + activityResultClass(event.result)">{{ event.result }}</span></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="empty">No billing activity yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="hq-card panel gateway-summary">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Payment gateway</h3>
+        <p class="hq-muted">Stripe integration status (mock).</p>
+      </div>
+      <button class="hq-btn hq-btn-ghost" type="button" (click)="setTab('gateway')">Configure</button>
+    </div>
+    <dl class="gateway-meta">
+      <div><dt>Provider</dt><dd>Stripe</dd></div>
+      <div><dt>Status</dt><dd><span [class]="'hq-badge ' + (data.paymentGateway().connected ? 'hq-badge-active' : 'hq-badge-archived')">{{ data.paymentGateway().connected ? 'Connected' : 'Disconnected' }}</span></dd></div>
+      <div><dt>Mode</dt><dd>{{ data.paymentGateway().mode === 'test' ? 'Test' : 'Live' }}</dd></div>
+      <div><dt>Last synced</dt><dd>{{ data.paymentGateway().lastSyncedAt | date: 'medium' }}</dd></div>
+    </dl>
+  </section>
+} @else if (tab() === 'invoices') {
+  <section class="page-toolbar">
+    <div class="search-box">
+      <input
+        type="search"
+        placeholder="Search invoices..."
+        [value]="search()"
+        (input)="search.set($any($event.target).value); invoicePage.set(1)"
+      />
+    </div>
+    <app-hq-select
+      [options]="invoiceStatusOptions"
+      [value]="invoiceStatus()"
+      minWidth="156px"
+      (valueChange)="invoiceStatus.set($event); invoicePage.set(1)"
+    />
+    <div class="toolbar-actions">
+      @if (selectedInvoiceIds().size > 0) {
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="downloadSelectedInvoices()">
+          <app-hq-icon name="file-pdf" [size]="15" />
+          Export PDF ({{ selectedInvoiceIds().size }})
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox" [checked]="allInvoicesSelected()" (change)="toggleSelectAllInvoices()" aria-label="Select all on page" />
+            </th>
+            <th>Invoice</th>
+            <th>Organization</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Issued</th>
+            <th>Due</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (inv of pagedInvoices(); track inv.id) {
+            <tr class="clickable" tabindex="0" (click)="openInvoice(inv)" (keydown.enter)="openInvoice(inv)">
+              <td class="check-col" (click)="$event.stopPropagation()">
+                <input type="checkbox" [checked]="selectedInvoiceIds().has(inv.id)" (change)="toggleInvoiceSelect(inv.id, $event)" [attr.aria-label]="'Select ' + inv.number" />
+              </td>
+              <td><strong>{{ inv.number }}</strong></td>
+              <td>{{ data.getOrganization(inv.organizationId)?.name }}</td>
+              <td>{{ inv.amount | hqCurrency }}</td>
+              <td><span [class]="'hq-badge ' + invoiceBadge(inv.status)">{{ inv.status.replace('_', ' ') }}</span></td>
+              <td>{{ inv.issuedAt | date: 'mediumDate' }}</td>
+              <td>{{ inv.dueAt | date: 'mediumDate' }}</td>
+              <td class="actions-col" (click)="$event.stopPropagation()">
+                <button class="btn-pdf-export" type="button" (click)="downloadInvoice(inv.id, $event)">
+                  <app-hq-icon name="file-pdf" [size]="15" />
+                  PDF
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-hq-pagination
+      [page]="invoicePage()"
+      [pageSize]="pageSize"
+      [total]="filteredInvoices().length"
+      (pageChange)="invoicePage.set($event)"
+    />
+  </section>
+} @else if (tab() === 'payments') {
+  <section class="page-toolbar">
+    <div class="search-box">
+      <input
+        type="search"
+        placeholder="Search payments..."
+        [value]="search()"
+        (input)="search.set($any($event.target).value); paymentPage.set(1)"
+      />
+    </div>
+    <app-hq-select
+      [options]="paymentStatusOptions"
+      [value]="paymentStatus()"
+      minWidth="156px"
+      (valueChange)="paymentStatus.set($event); paymentPage.set(1)"
+    />
+  </section>
+
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Payment ID</th>
+            <th>Invoice</th>
+            <th>Organization</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Method</th>
+            <th>Transaction</th>
+            <th>Processed</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pay of pagedPayments(); track pay.id) {
+            <tr class="clickable" tabindex="0" (click)="openPayment(pay)" (keydown.enter)="openPayment(pay)">
+              <td><strong>{{ pay.receiptNumber }}</strong></td>
+              <td>{{ invoiceNumber(pay.invoiceId) }}</td>
+              <td>{{ data.getOrganization(pay.organizationId)?.name }}</td>
+              <td>{{ pay.amount | hqCurrency }}</td>
+              <td><span [class]="'hq-badge ' + paymentBadge(pay.status)">{{ pay.status }}</span></td>
+              <td>{{ pay.method }}</td>
+              <td class="mono">{{ pay.transactionId }}</td>
+              <td>{{ pay.processedAt | date: 'mediumDate' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="empty">No payments match your filters.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-hq-pagination
+      [page]="paymentPage()"
+      [pageSize]="pageSize"
+      [total]="filteredPayments().length"
+      (pageChange)="paymentPage.set($event)"
+    />
+  </section>
+} @else if (tab() === 'activity') {
+  <section class="page-summary">
+    <button
+      class="page-kpi"
+      type="button"
+      [class.active]="activityResult() === 'all'"
+      (click)="setActivityResultFilter('all')"
+    >
+      <span>All events</span>
+      <strong>{{ activitySummary().total }}</strong>
+    </button>
+    <button
+      class="page-kpi tone-teal"
+      type="button"
+      [class.active]="activityResult() === 'success'"
+      (click)="setActivityResultFilter('success')"
+    >
+      <span>Success</span>
+      <strong>{{ activitySummary().success }}</strong>
+    </button>
+    <button
+      class="page-kpi tone-orange"
+      type="button"
+      [class.active]="activityResult() === 'warning'"
+      (click)="setActivityResultFilter('warning')"
+    >
+      <span>Warnings</span>
+      <strong>{{ activitySummary().warning }}</strong>
+    </button>
+    <button
+      class="page-kpi tone-red"
+      type="button"
+      [class.active]="activityResult() === 'failed'"
+      (click)="setActivityResultFilter('failed')"
+    >
+      <span>Failed</span>
+      <strong>{{ activitySummary().failed }}</strong>
+    </button>
+  </section>
+
+  <section class="page-toolbar">
+    <div class="search-box">
+      <input
+        type="search"
+        placeholder="Search actor, action, target..."
+        [value]="activitySearch()"
+        (input)="activitySearch.set($any($event.target).value); activityPage.set(1)"
+      />
+    </div>
+    <app-hq-select
+      [options]="activityCategoryOptions"
+      [value]="activityCategory()"
+      minWidth="156px"
+      (valueChange)="setActivityCategory($event)"
+    />
+    <app-hq-select
+      [options]="activityResultOptions"
+      [value]="activityResult()"
+      minWidth="148px"
+      (valueChange)="setActivityResultFilter($event)"
+    />
+  </section>
+
+  <section class="hq-card table-card activity-log-card">
+    <div class="activity-log-head">
+      <div>
+        <h3 class="hq-section-title">Billing activity log</h3>
+        <p class="hq-muted">Audit trail for invoices, payments, refunds, and gateway operations.</p>
+      </div>
+      <span class="activity-count">{{ filteredActivity().length }} event{{ filteredActivity().length === 1 ? '' : 's' }}</span>
+    </div>
+    <div class="hq-table-wrap">
+      <table class="hq-table activity-log-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>Category</th>
+            <th>Result</th>
+            <th class="details-col">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of pagedActivity(); track event.id) {
+            <tr>
+              <td class="activity-time">{{ event.timestamp | date: 'medium' }}</td>
+              <td>{{ event.actor }}</td>
+              <td><strong>{{ event.action }}</strong></td>
+              <td>{{ event.target }}</td>
+              <td><span class="hq-badge hq-badge-archived">{{ event.category }}</span></td>
+              <td><span [class]="'hq-badge ' + activityResultClass(event.result)">{{ event.result }}</span></td>
+              <td class="details-col">
+                <button
+                  class="activity-detail-btn"
+                  type="button"
+                  title="View full event details"
+                  (click)="openActivity(event, $event)"
+                >
+                  <app-hq-icon name="file-text" [size]="15" />
+                  <span>Details</span>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="empty">No billing activity matches your filters.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-hq-pagination
+      [page]="activityPage()"
+      [pageSize]="pageSize"
+      [total]="filteredActivity().length"
+      (pageChange)="activityPage.set($event)"
+    />
+  </section>
+} @else {
+  @let gateway = gatewayDraft();
+  <section class="hq-card panel gateway-panel">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Stripe payment gateway</h3>
+        <p class="hq-muted">Configure the billing provider. Keys are mocked — no real charges are processed.</p>
+      </div>
+      <span [class]="'hq-badge ' + (gateway.connected ? 'hq-badge-active' : 'hq-badge-archived')">
+        {{ gateway.connected ? 'Connected' : 'Disconnected' }}
+      </span>
+    </div>
+
+    <div class="form-grid cols-2">
+      <label>
+        Environment
+        <app-hq-select
+          [options]="gatewayModeOptions"
+          [value]="gateway.mode"
+          (valueChange)="setGatewayMode($event)"
+        />
+      </label>
+      <label>
+        Currency
+        <input [value]="gateway.currency" (input)="updateGatewayField('currency', $any($event.target).value)" />
+      </label>
+      <label>
+        Publishable key
+        <input [value]="gateway.publishableKey" (input)="updateGatewayField('publishableKey', $any($event.target).value)" />
+      </label>
+      <label>
+        Secret key
+        <input type="password" [value]="gateway.secretKeyMasked" readonly />
+      </label>
+      <label class="full">
+        Webhook URL
+        <input [value]="gateway.webhookUrl" (input)="updateGatewayField('webhookUrl', $any($event.target).value)" />
+      </label>
+      <label>
+        Webhook secret
+        <input type="password" [value]="gateway.webhookSecretMasked" readonly />
+      </label>
+      <label>
+        Last synced
+        <input [value]="gateway.lastSyncedAt | date: 'medium'" readonly />
+      </label>
+    </div>
+
+    <div class="gateway-actions">
+      @if (gateway.connected) {
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="testGateway()">Test connection</button>
+        <button class="hq-btn hq-btn-ghost warn" type="button" (click)="disconnectGateway()">Disconnect</button>
+      } @else {
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="billing" (click)="connectGateway()">Connect Stripe</button>
+      }
+      <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="billing" (click)="saveGateway()">Save settings</button>
+    </div>
+  </section>
+}
+
+@if (selectedActivity(); as event) {
+  <div class="hq-drawer-backdrop" (click)="closeActivityDrawer()">
+    <aside class="hq-drawer billing-drawer" (click)="$event.stopPropagation()">
+      <div class="hq-drawer-head">
+        <div>
+          <div class="drawer-badges">
+            <span [class]="'hq-badge ' + activityResultClass(event.result)">{{ event.result }}</span>
+            <span class="hq-badge hq-badge-archived">{{ event.category }}</span>
+          </div>
+          <h3>{{ event.action }}</h3>
+          <p class="hq-muted">{{ event.target }} · {{ event.timestamp | date: 'medium' }}</p>
+        </div>
+        <button type="button" class="hq-drawer-close" (click)="closeActivityDrawer()" aria-label="Close">×</button>
+      </div>
+      <div class="hq-drawer-body">
+        <section class="drawer-section">
+          <h4>Summary</h4>
+          <p class="activity-summary">{{ event.description }}</p>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Full event details</h4>
+          <div class="activity-detail-body">
+            @for (paragraph of activityDetailParagraphs(event); track $index) {
+              <p>{{ paragraph }}</p>
+            }
+          </div>
+        </section>
+
+        @if (event.relatedRefs?.length) {
+          <section class="drawer-section">
+            <h4>References</h4>
+            <dl class="hq-drawer-meta">
+              @for (ref of event.relatedRefs; track ref.label) {
+                <div><dt>{{ ref.label }}</dt><dd class="mono">{{ ref.value }}</dd></div>
+              }
+            </dl>
+          </section>
+        }
+
+        <section class="drawer-section">
+          <h4>Audit metadata</h4>
+          <dl class="hq-drawer-meta">
+            <div><dt>Event ID</dt><dd class="mono">{{ event.id }}</dd></div>
+            <div><dt>Actor</dt><dd>{{ event.actor }}</dd></div>
+            <div><dt>Timestamp</dt><dd>{{ event.timestamp | date: 'medium' }}</dd></div>
+            <div><dt>Result</dt><dd><span [class]="'hq-badge ' + activityResultClass(event.result)">{{ event.result }}</span></dd></div>
+          </dl>
+        </section>
+      </div>
+      <div class="hq-drawer-foot">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="closeActivityDrawer()">Close</button>
+      </div>
+    </aside>
+  </div>
+}
+
+@if (selectedInvoiceDetail(); as detail) {
+  @let inv = detail.invoice;
+  <div class="hq-drawer-backdrop" (click)="closeInvoiceDrawer()">
+    <aside class="hq-drawer billing-drawer" (click)="$event.stopPropagation()">
+      <div class="hq-drawer-head">
+        <div>
+          <div class="drawer-badges">
+            <span [class]="'hq-badge ' + invoiceBadge(inv.status)">{{ inv.status.replace('_', ' ') }}</span>
+            <span class="hq-badge hq-badge-archived">{{ detail.plan?.name ?? 'Subscription' }}</span>
+          </div>
+          <h3>{{ inv.number }}</h3>
+          <p class="hq-muted">{{ detail.organization.name }}</p>
+        </div>
+        <button type="button" class="hq-drawer-close" (click)="closeInvoiceDrawer()" aria-label="Close">×</button>
+      </div>
+      <div class="hq-drawer-body">
+        <section class="drawer-section amount-hero">
+          <span>Total amount</span>
+          <strong>{{ detail.total | hqCurrency:true }}</strong>
+          <p class="hq-muted">Subtotal {{ detail.subtotal | hqCurrency:true }} · Tax {{ detail.taxAmount | hqCurrency:true }}</p>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Billing details</h4>
+          <dl class="detail-grid">
+            <div><dt>Organization</dt><dd>{{ detail.organization.name }}</dd></div>
+            <div><dt>Industry</dt><dd>{{ detail.organization.industry }}</dd></div>
+            <div><dt>Country</dt><dd>{{ detail.organization.country }}</dd></div>
+            <div><dt>Plan</dt><dd>{{ detail.plan?.name ?? '—' }}</dd></div>
+            <div><dt>Billing interval</dt><dd>{{ detail.subscription?.interval ?? '—' }}</dd></div>
+            <div><dt>Seats</dt><dd>{{ detail.subscription?.seats ?? '—' }}</dd></div>
+            <div><dt>Issued</dt><dd>{{ inv.issuedAt | date: 'mediumDate' }}</dd></div>
+            <div><dt>Due date</dt><dd>{{ inv.dueAt | date: 'mediumDate' }}</dd></div>
+            @if (inv.paidAt) {
+              <div><dt>Paid on</dt><dd>{{ inv.paidAt | date: 'mediumDate' }}</dd></div>
+            }
+            <div><dt>Subscription ID</dt><dd class="mono">{{ inv.subscriptionId }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Line items</h4>
+          <div class="line-items-table">
+            <div class="line-items-head">
+              <span>Description</span>
+              <span>Qty</span>
+              <span>Unit</span>
+              <span>Amount</span>
+            </div>
+            @for (item of detail.lineItems; track item.description) {
+              <div class="line-items-row">
+                <span>{{ item.description }}</span>
+                <span>{{ item.quantity }}</span>
+                <span>{{ item.unitPrice | hqCurrency:true }}</span>
+                <strong>{{ item.amount | hqCurrency:true }}</strong>
+              </div>
+            }
+            <div class="line-items-foot">
+              <span>Subtotal</span>
+              <strong>{{ detail.subtotal | hqCurrency:true }}</strong>
+            </div>
+            <div class="line-items-foot">
+              <span>Tax (8%)</span>
+              <strong>{{ detail.taxAmount | hqCurrency:true }}</strong>
+            </div>
+            <div class="line-items-foot total">
+              <span>Total</span>
+              <strong>{{ detail.total | hqCurrency:true }}</strong>
+            </div>
+          </div>
+        </section>
+
+        @if (detail.payments.length) {
+          <section class="drawer-section">
+            <h4>Payment history</h4>
+            <div class="linked-list">
+              @for (pay of detail.payments; track pay.id) {
+                <button class="linked-item" type="button" (click)="openPayment(pay)">
+                  <div>
+                    <strong>{{ pay.receiptNumber }}</strong>
+                    <p class="hq-muted">{{ pay.method }} · {{ pay.processedAt | date: 'mediumDate' }}</p>
+                  </div>
+                  <span [class]="'hq-badge ' + paymentBadge(pay.status)">{{ pay.status }}</span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+      </div>
+      <div class="hq-drawer-foot">
+        <button class="btn-pdf-export primary" type="button" (click)="downloadInvoice(inv.id)">
+          <app-hq-icon name="file-pdf" [size]="16" />
+          Download PDF invoice
+        </button>
+        <a class="hq-btn hq-btn-ghost" [routerLink]="['/subscriptions', inv.subscriptionId]" (click)="closeInvoiceDrawer()">View subscription</a>
+        <a class="hq-btn hq-btn-ghost" [routerLink]="['/organizations', inv.organizationId]" (click)="closeInvoiceDrawer()">View organization</a>
+      </div>
+    </aside>
+  </div>
+}
+
+@if (selectedPaymentDetail(); as detail) {
+  @let pay = detail.payment;
+  <div class="hq-drawer-backdrop" (click)="closePaymentDrawer()">
+    <aside class="hq-drawer billing-drawer" (click)="$event.stopPropagation()">
+      <div class="hq-drawer-head">
+        <div>
+          <div class="drawer-badges">
+            <span [class]="'hq-badge ' + paymentBadge(pay.status)">{{ pay.status }}</span>
+            <span class="hq-badge hq-badge-archived">{{ pay.currency }}</span>
+          </div>
+          <h3>{{ pay.receiptNumber }}</h3>
+          <p class="hq-muted">{{ detail.organization.name }}</p>
+        </div>
+        <button type="button" class="hq-drawer-close" (click)="closePaymentDrawer()" aria-label="Close">×</button>
+      </div>
+      <div class="hq-drawer-body">
+        <section class="drawer-section amount-hero">
+          <span>Payment amount</span>
+          <strong>{{ pay.amount | hqCurrency:true }}</strong>
+          <p class="hq-muted">Net to platform {{ pay.netAmount | hqCurrency:true }} after {{ pay.feeAmount | hqCurrency:true }} fee</p>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Payment details</h4>
+          <dl class="detail-grid">
+            <div><dt>Receipt number</dt><dd class="mono">{{ pay.receiptNumber }}</dd></div>
+            <div><dt>Transaction ID</dt><dd class="mono">{{ pay.transactionId }}</dd></div>
+            <div><dt>Gateway reference</dt><dd class="mono">{{ pay.gatewayReference }}</dd></div>
+            <div><dt>Payment method</dt><dd>{{ pay.method }}</dd></div>
+            <div><dt>Processed</dt><dd>{{ pay.processedAt | date: 'medium' }}</dd></div>
+            <div><dt>Processing fee</dt><dd>{{ pay.feeAmount | hqCurrency:true }}</dd></div>
+            <div><dt>Net amount</dt><dd>{{ pay.netAmount | hqCurrency:true }}</dd></div>
+            @if (pay.failureReason) {
+              <div class="full"><dt>Failure reason</dt><dd class="warn-text">{{ pay.failureReason }}</dd></div>
+            }
+          </dl>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Linked records</h4>
+          <dl class="detail-grid">
+            <div><dt>Organization</dt><dd>{{ detail.organization.name }}</dd></div>
+            <div><dt>Invoice</dt><dd>{{ detail.invoice?.number ?? '—' }}</dd></div>
+            <div><dt>Plan</dt><dd>{{ detail.plan?.name ?? '—' }}</dd></div>
+            <div><dt>Subscription</dt><dd class="mono">{{ detail.subscription?.id ?? '—' }}</dd></div>
+          </dl>
+        </section>
+      </div>
+      <div class="hq-drawer-foot">
+        @if (detail.invoice) {
+          <button class="hq-btn hq-btn-primary" type="button" (click)="openInvoiceFromPayment(detail.invoice!.id)">
+            View invoice
+          </button>
+        }
+        <a class="hq-btn hq-btn-ghost" [routerLink]="['/organizations', pay.organizationId]" (click)="closePaymentDrawer()">View organization</a>
+      </div>
+    </aside>
+  </div>
+}

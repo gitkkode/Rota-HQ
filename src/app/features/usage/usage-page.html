@@ -1,0 +1,110 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<section class="page-summary">
+  <button
+    class="page-kpi tone-green"
+    type="button"
+    [class.active]="toneFilter() === 'healthy'"
+    (click)="toneFilter.set('healthy')"
+  >
+    <span>Healthy</span>
+    <strong>{{ summary().healthy }}</strong>
+  </button>
+  <button
+    class="page-kpi tone-amber"
+    type="button"
+    [class.active]="toneFilter() === 'near'"
+    (click)="toneFilter.set('near')"
+  >
+    <span>Near limit</span>
+    <strong>{{ summary().near }}</strong>
+  </button>
+  <button
+    class="page-kpi tone-orange"
+    type="button"
+    [class.active]="toneFilter() === 'limit'"
+    (click)="toneFilter.set('limit')"
+  >
+    <span>Limit reached</span>
+    <strong>{{ summary().limit }}</strong>
+  </button>
+  <button
+    class="page-kpi"
+    type="button"
+    [class.active]="toneFilter() === 'all'"
+    (click)="toneFilter.set('all')"
+  >
+    <span>Show all</span>
+    <strong>{{ data.usageRows().length }}</strong>
+  </button>
+</section>
+
+<section class="page-toolbar">
+  <div class="search-box">
+    <input type="search" placeholder="Search organizations..." [value]="search()" (input)="search.set($any($event.target).value)" />
+  </div>
+</section>
+
+<section class="hq-card table-card">
+  <div class="table-head">
+    <div>
+      <h2 class="hq-section-title">Usage & limits</h2>
+      <p class="hq-muted">Monitor seat, location, manager and storage consumption by organization.</p>
+    </div>
+  </div>
+  <div class="hq-table-wrap">
+    <table class="hq-table">
+      <thead>
+        <tr>
+          <th>Organization</th>
+          <th>Users</th>
+          <th>Locations</th>
+          <th>Managers</th>
+          <th>Storage</th>
+          <th>State</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.org.id) {
+          <tr class="clickable" [routerLink]="['/usage', row.org.id]">
+            <td>
+              <strong>{{ row.org.name }}</strong>
+            </td>
+            <td class="meter-cell">
+              <span>{{ row.org.usage.users }} / {{ row.org.usage.usersLimit }}</span>
+              <div class="usage-meter" [attr.data-tone]="row.userRatio >= 0.85 ? (row.userRatio >= 1 ? 'limit' : 'near') : null">
+                <div [style.width.%]="row.userRatio * 100"></div>
+              </div>
+            </td>
+            <td class="meter-cell">
+              <span>{{ row.org.usage.locations }} / {{ row.org.usage.locationsLimit }}</span>
+              <div class="usage-meter" [attr.data-tone]="row.locationRatio >= 0.85 ? (row.locationRatio >= 1 ? 'limit' : 'near') : null">
+                <div [style.width.%]="row.locationRatio * 100"></div>
+              </div>
+            </td>
+            <td class="meter-cell">
+              <span>{{ row.org.usage.managers }} / {{ row.org.usage.managersLimit }}</span>
+              <div class="usage-meter" [attr.data-tone]="row.managerRatio >= 0.85 ? (row.managerRatio >= 1 ? 'limit' : 'near') : null">
+                <div [style.width.%]="row.managerRatio * 100"></div>
+              </div>
+            </td>
+            <td class="meter-cell">
+              <span>{{ row.org.usage.storageGb }} / {{ row.org.usage.storageLimitGb }} GB</span>
+              <div class="usage-meter" [attr.data-tone]="row.storageRatio >= 0.85 ? (row.storageRatio >= 1 ? 'limit' : 'near') : null">
+                <div [style.width.%]="row.storageRatio * 100"></div>
+              </div>
+            </td>
+            <td>
+              <span [class]="'hq-badge hq-badge-' + (row.tone === 'healthy' ? 'active' : row.tone === 'near' ? 'past_due' : 'suspended')">
+                {{ row.tone === 'healthy' ? 'healthy' : row.tone === 'near' ? 'near limit' : 'at limit' }}
+              </span>
+            </td>
+          </tr>
+        }
+        @empty {
+          <tr><td colspan="6"><app-hq-empty-state title="No organizations match" description="Try adjusting your search or filter." /></td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -1,0 +1,144 @@
+.hq-page-tabs-host {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.page-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  max-width: 100%;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid var(--hq-glass-border);
+  border-radius: var(--hq-radius-pill);
+  box-shadow: var(--hq-shadow-sm);
+  margin-bottom: 1rem;
+  position: relative;
+  isolation: isolate;
+}
+
+.page-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.page-tabs-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--hq-radius-pill);
+  background: linear-gradient(180deg, #3b82f6 0%, var(--hq-primary) 100%);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition:
+    transform 0.34s cubic-bezier(0.34, 1.2, 0.64, 1),
+    width 0.34s cubic-bezier(0.34, 1.2, 0.64, 1),
+    height 0.34s cubic-bezier(0.34, 1.2, 0.64, 1),
+    opacity 0.2s ease;
+  will-change: transform, width;
+}
+
+.page-tabs-indicator.ready {
+  opacity: 1;
+}
+
+.page-tabs-indicator.instant {
+  transition: none !important;
+}
+
+.page-tabs button {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--hq-radius-pill);
+  padding: 0.52rem 1.05rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--hq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    color 0.24s ease,
+    transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.page-tabs button:hover:not(.active) {
+  color: var(--hq-primary);
+}
+
+.page-tabs button:active:not(.active) {
+  transform: scale(0.97);
+}
+
+.page-tabs button.active {
+  color: #fff;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Fallback before the sliding indicator is positioned */
+.page-tabs:not(:has(.page-tabs-indicator.ready)) button.active {
+  background: linear-gradient(180deg, #3b82f6 0%, var(--hq-primary) 100%);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.page-tabs.stat-tabs {
+  margin-bottom: 0;
+  gap: 0.2rem;
+  padding: 0.28rem;
+}
+
+.page-tabs.stat-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  font-weight: 600;
+}
+
+.page-tabs.stat-tabs button span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.9;
+}
+
+.page-tabs.stat-tabs button strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.page-tabs.stat-tabs button:not(.active) span,
+.page-tabs.stat-tabs button:not(.active) strong {
+  color: var(--hq-text-muted);
+}
+
+.page-tabs.stat-tabs button.active span,
+.page-tabs.stat-tabs button.active strong {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-tabs-indicator {
+    transition: none;
+  }
+
+  .page-tabs button {
+    transition: none;
+  }
+}

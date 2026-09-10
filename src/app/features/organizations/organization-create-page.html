@@ -1,0 +1,214 @@
+<section class="create-hero hq-card">
+  <div class="create-hero-main">
+    <h2>Create organization</h2>
+    <p class="hq-muted">
+      Step {{ step() }} of {{ totalSteps }} — provision a customer with profile, subscription, and primary admin.
+    </p>
+  </div>
+  <div class="create-hero-actions">
+    <button class="hq-btn hq-btn-ghost" type="button" (click)="cancel()">Cancel</button>
+  </div>
+</section>
+
+<nav class="wizard-track hq-card" aria-label="Create organization steps">
+  <div class="wizard-track-rail" aria-hidden="true">
+    <div class="wizard-track-fill" [style.width.%]="progressPercent()"></div>
+  </div>
+
+  <ol class="wizard-track-steps">
+    @for (label of stepLabels; track label; let i = $index) {
+      @let stepNumber = i + 1;
+      <li class="wizard-track-item">
+        <button
+          type="button"
+          class="wizard-node"
+          [class.active]="step() === stepNumber"
+          [class.done]="step() > stepNumber"
+          [class.upcoming]="step() < stepNumber"
+          [disabled]="!canGoToStep(stepNumber)"
+          (click)="goToStep(stepNumber)"
+        >
+          <span class="wizard-node-ring">
+            @if (step() > stepNumber) {
+              <span class="wizard-node-check" aria-hidden="true">✓</span>
+            } @else {
+              <span class="wizard-node-num">{{ stepNumber }}</span>
+            }
+          </span>
+          <span class="wizard-node-label">{{ label }}</span>
+        </button>
+      </li>
+    }
+  </ol>
+</nav>
+
+<div class="create-layout">
+  <div class="create-main">
+    <div class="step-viewport">
+      @if (step() === 1) {
+        <article class="hq-card form-section step-panel" [class.anim-back]="stepDirection() === 'back'">
+          <header class="section-head">
+            <h3 class="hq-section-title">Organization profile</h3>
+            <p class="hq-muted">Core identity shown across the platform and on invoices.</p>
+          </header>
+          <div class="form-grid cols-2">
+            <label>
+              Organization name <span class="req">*</span>
+              <input placeholder="e.g. Nova Security" [value]="name()" (input)="onNameInput($any($event.target).value)" />
+            </label>
+            <label>
+              URL slug
+              <input placeholder="nova-security" [value]="slug()" (input)="onSlugInput($any($event.target).value)" />
+            </label>
+            <label>
+              Industry <span class="req">*</span>
+              <app-hq-select [options]="industryOptions" [value]="industry()" (valueChange)="industry.set($event)" />
+            </label>
+            <label>
+              Country <span class="req">*</span>
+              <app-hq-select [options]="countryOptions" [value]="country()" (valueChange)="country.set($event)" />
+            </label>
+          </div>
+        </article>
+      }
+
+      @if (step() === 2) {
+        <article class="hq-card form-section step-panel" [class.anim-back]="stepDirection() === 'back'">
+          <header class="section-head">
+            <h3 class="hq-section-title">Subscription &amp; plan</h3>
+            <p class="hq-muted">Billing plan, cycle, and initial lifecycle state.</p>
+          </header>
+          <div class="form-grid cols-2">
+            <label>
+              Plan <span class="req">*</span>
+              <app-hq-select [options]="planOptions()" [value]="planId()" (valueChange)="setPlan($event)" />
+            </label>
+            <label>
+              Billing interval
+              <app-hq-select [options]="intervalOptions" [value]="interval()" (valueChange)="setInterval($event)" />
+            </label>
+            <label>
+              Initial status
+              <app-hq-select [options]="statusOptions" [value]="status()" (valueChange)="setStatus($event)" />
+            </label>
+            <label>
+              Subscription seats
+              <input type="number" min="1" [value]="seats()" (input)="seats.set(+$any($event.target).value)" />
+            </label>
+          </div>
+          <div class="form-grid cols-2">
+            <label>Users limit <input type="number" min="1" [value]="usersLimit()" (input)="usersLimit.set(+$any($event.target).value)" /></label>
+            <label>Locations limit <input type="number" min="1" [value]="locationsLimit()" (input)="locationsLimit.set(+$any($event.target).value)" /></label>
+            <label>Managers limit <input type="number" min="1" [value]="managersLimit()" (input)="managersLimit.set(+$any($event.target).value)" /></label>
+            <label>Storage limit (GB) <input type="number" min="1" [value]="storageLimitGb()" (input)="storageLimitGb.set(+$any($event.target).value)" /></label>
+          </div>
+        </article>
+      }
+
+      @if (step() === 3) {
+        <article class="hq-card form-section step-panel" [class.anim-back]="stepDirection() === 'back'">
+          <header class="section-head">
+            <h3 class="hq-section-title">Primary administrator</h3>
+            <p class="hq-muted">First customer admin — receives an invitation to access the org.</p>
+          </header>
+          <div class="form-grid cols-2">
+            <label>
+              Full name <span class="req">*</span>
+              <input placeholder="Marcus Cole" [value]="adminName()" (input)="adminName.set($any($event.target).value)" />
+            </label>
+            <label>
+              Email <span class="req">*</span>
+              <input type="email" placeholder="marcus@company.com" [value]="adminEmail()" (input)="adminEmail.set($any($event.target).value)" />
+            </label>
+            <label>
+              Role
+              <app-hq-select [options]="adminRoleOptions" [value]="adminRole()" (valueChange)="adminRole.set($event)" />
+            </label>
+          </div>
+          <div class="form-grid">
+            <label class="full">
+              Internal notes
+              <textarea rows="3" placeholder="Sales handoff, contract reference…" [value]="notes()" (input)="notes.set($any($event.target).value)"></textarea>
+            </label>
+          </div>
+        </article>
+      }
+
+      @if (step() === 4) {
+        <article class="hq-card form-section review step-panel" [class.anim-back]="stepDirection() === 'back'">
+          <header class="section-head">
+            <h3 class="hq-section-title">Review &amp; confirm</h3>
+            <p class="hq-muted">Verify details before provisioning the organization.</p>
+          </header>
+          <dl class="review-grid">
+            <div><dt>Organization</dt><dd>{{ name() }}</dd></div>
+            <div><dt>Industry</dt><dd>{{ industry() }} · {{ country() }}</dd></div>
+            <div><dt>Plan</dt><dd>{{ selectedPlan()?.name }} · {{ interval() }}</dd></div>
+            <div><dt>Status</dt><dd>{{ status() }}</dd></div>
+            <div><dt>Primary admin</dt><dd>{{ adminName() }} ({{ adminEmail() }})</dd></div>
+            <div><dt>Limits</dt><dd>{{ usersLimit() }} users · {{ locationsLimit() }} locations · {{ storageLimitGb() }} GB</dd></div>
+          </dl>
+        </article>
+      }
+    </div>
+
+    <footer class="wizard-footer hq-card">
+      <button
+        class="hq-btn hq-btn-ghost wizard-prev"
+        type="button"
+        [disabled]="step() === 1"
+        (click)="prevStep()"
+      >
+        Previous
+      </button>
+
+      <span class="wizard-footer-meta hq-muted">Step {{ step() }} of {{ totalSteps }}</span>
+
+      @if (!isLastStep()) {
+        <button
+          class="hq-btn hq-btn-primary wizard-next"
+          type="button"
+          [disabled]="!canAdvance()"
+          (click)="nextStep()"
+        >
+          Next
+        </button>
+      } @else {
+        <button
+          class="hq-btn hq-btn-primary wizard-next"
+          type="button"
+          [disabled]="!canSubmit()"
+          (click)="submit()"
+        >
+          {{ submitting() ? 'Creating…' : 'Create organization' }}
+        </button>
+      }
+    </footer>
+  </div>
+
+  <aside class="create-aside">
+    <article class="hq-card preview-card">
+      <h3 class="hq-section-title">Live preview</h3>
+      <div class="preview-org">
+        <div class="preview-logo">{{ previewInitials() }}</div>
+        <div>
+          <strong>{{ name().trim() || 'Organization name' }}</strong>
+          <p class="hq-muted">{{ industry() || 'Industry' }} · {{ country() || 'Country' }}</p>
+        </div>
+        <span [class]="'hq-badge ' + (status() === 'active' ? 'hq-badge-active' : 'hq-badge-trial')">{{ status() }}</span>
+      </div>
+      @if (selectedPlan(); as plan) {
+        <div class="preview-block">
+          <span class="preview-label">Plan</span>
+          <strong>{{ plan.name }}</strong>
+          <p class="hq-muted">{{ plan.priceMonthly | hqCurrency }}/mo · {{ interval() }}</p>
+        </div>
+      }
+      <div class="preview-block">
+        <span class="preview-label">Primary admin</span>
+        <strong>{{ adminName().trim() || '—' }}</strong>
+        <p class="hq-muted">{{ adminEmail().trim() || 'admin@company.com' }}</p>
+      </div>
+    </article>
+  </aside>
+</div>

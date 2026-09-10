@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+.active-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+  border-radius: var(--hq-radius);
+  background: var(--hq-surface-solid);
+  border: 1px solid var(--hq-border);
+  border-left: 4px solid #ea580c;
+  flex-wrap: wrap;
+  box-shadow: var(--hq-shadow-sm);
+}
+
+.active-banner strong {
+  display: block;
+  font-size: var(--hq-text-sm);
+  font-weight: var(--hq-fw-semibold);
+  color: var(--hq-text);
+}
+
+.active-banner p {
+  margin: 0.2rem 0 0;
+  font-size: var(--hq-text-xs);
+  color: var(--hq-text-muted);
+}
+
+.confirm-box {
+  padding: 0.85rem;
+  border-radius: var(--hq-radius-sm);
+  background: #f8fafc;
+  border: 1px solid var(--hq-border);
+  margin-bottom: 0.85rem;
+}
+
+a {
+  color: var(--hq-primary);
+  font-weight: 600;
+}

@@ -1,0 +1,15 @@
+.denied-card {
+  max-width: 560px;
+  padding: 2rem;
+}
+
+.denied-card h2 {
+  margin: 0 0 0.75rem;
+}
+
+.denied-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}

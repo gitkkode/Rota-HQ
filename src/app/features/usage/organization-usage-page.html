@@ -1,0 +1,53 @@
+@if (org(); as organization) {
+  <app-hq-breadcrumbs [items]="breadcrumb()" />
+
+  <section class="hero hq-card">
+    <h2>{{ organization.name }}</h2>
+    <p class="hq-muted">Detailed usage, feature adoption, and API consumption.</p>
+  </section>
+
+  @if (detail(); as usage) {
+    <section class="page-stats">
+      <article class="hq-card page-stat"><span>API calls (30d)</span><strong>{{ usage.apiCalls | number }}</strong></article>
+      <article class="hq-card page-stat"><span>API limit</span><strong>{{ usage.apiLimit | number }}</strong></article>
+      <article class="hq-card page-stat"><span>Users</span><strong>{{ organization.usage.users }}/{{ organization.usage.usersLimit }}</strong></article>
+      <article class="hq-card page-stat"><span>Storage</span><strong>{{ organization.usage.storageGb }}/{{ organization.usage.storageLimitGb }} GB</strong></article>
+    </section>
+
+    <section class="hq-card panel">
+      <h3 class="hq-section-title">Feature usage</h3>
+      <div class="hq-table-wrap">
+        <table class="hq-table">
+          <thead>
+            <tr><th>Feature</th><th>Active users</th><th>Plan limit</th><th>Adoption</th></tr>
+          </thead>
+          <tbody>
+            @for (row of usage.featureUsage; track row.featureId) {
+              <tr>
+                <td><strong>{{ row.name }}</strong></td>
+                <td>{{ row.activeUsers }}</td>
+                <td>{{ row.limit }}</td>
+                <td>
+                  <div class="meter">
+                    <div [style.width.%]="(row.activeUsers / row.limit) * 100"></div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="hq-card panel api-panel">
+      <h3 class="hq-section-title">API usage (placeholder)</h3>
+      <p class="hq-muted">REST API call volume for tenant integrations. Production metering connects here.</p>
+      <div class="api-meter">
+        <div [style.width.%]="(usage.apiCalls / usage.apiLimit) * 100"></div>
+      </div>
+      <span>{{ usage.apiCalls | number }} / {{ usage.apiLimit | number }} calls</span>
+    </section>
+  }
+} @else {
+  <section class="hq-card empty"><h2>Organization not found</h2><a routerLink="/usage" class="hq-btn hq-btn-primary">Back</a></section>
+}

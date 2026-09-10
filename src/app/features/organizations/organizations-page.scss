@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+.org-toolbar {
+  flex-wrap: nowrap;
+  gap: 0.65rem;
+}
+
+.org-toolbar .search-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.org-toolbar .search-box input {
+  width: 100%;
+}
+
+.org-toolbar .filters-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.org-toolbar .sort-select {
+  flex-shrink: 0;
+}
+
+.check-col {
+  width: 2.5rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media (max-width: 960px) {
+  .org-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .org-toolbar .search-box {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .toolbar-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

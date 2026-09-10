@@ -1,0 +1,44 @@
+<div class="auth-shell">
+  <aside class="auth-brand" aria-hidden="false">
+    <a class="brand-link" routerLink="/auth/login">
+      <div class="brand-mark">
+        <app-hq-icon name="dashboard" [size]="20" [weight]="2" />
+      </div>
+      <div class="brand-text">
+        <strong>Workforce</strong>
+        <span>HQ</span>
+      </div>
+    </a>
+
+    <div class="brand-copy">
+      <h1>Manage your platform with confidence</h1>
+      <p>
+        Organizations, subscriptions, billing, and security — unified in one control plane built for
+        platform operators.
+      </p>
+    </div>
+
+    <ul class="brand-points">
+      <li>
+        <app-hq-icon name="check-circle" [size]="16" />
+        Multi-tenant organization management
+      </li>
+      <li>
+        <app-hq-icon name="check-circle" [size]="16" />
+        Subscription and billing oversight
+      </li>
+      <li>
+        <app-hq-icon name="check-circle" [size]="16" />
+        Security, audit, and support tools
+      </li>
+    </ul>
+
+    <p class="brand-footnote">Mock authentication — no live identity provider connected.</p>
+  </aside>
+
+  <main class="auth-main">
+    <router-outlet />
+  </main>
+</div>
+
+<app-hq-toast-container />

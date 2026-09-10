@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.meter-cell {
+  min-width: 120px;
+}
+
+.meter-cell span {
+  display: block;
+  font-size: 0.78rem;
+  margin-bottom: 0.3rem;
+  color: var(--hq-text-muted);
+}

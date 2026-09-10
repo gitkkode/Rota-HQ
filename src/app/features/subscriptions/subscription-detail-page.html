@@ -1,0 +1,258 @@
+@if (subscription(); as sub) {
+  <app-hq-breadcrumbs [items]="breadcrumb()" />
+
+  @if (sub.pendingPlanChange; as pending) {
+    <section class="pending-banner hq-card">
+      <div>
+        <strong>Pending plan change</strong>
+        <p class="hq-muted">
+          Switching to {{ pendingPlan()?.name }} on {{ pending.effectiveDate | date: 'mediumDate' }}.
+          {{ pending.note }}
+        </p>
+      </div>
+      <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelPendingChange()">Cancel pending change</button>
+    </section>
+  }
+
+  @if (sub.status === 'cancelled' && sub.cancelledAt) {
+    <section class="cancel-banner hq-card">
+      <strong>Subscription cancelled</strong>
+      <p class="hq-muted">
+        Cancelled {{ sub.cancelledAt | date: 'mediumDate' }}
+        @if (sub.cancellationReason) { · {{ sub.cancellationReason }} }
+      </p>
+    </section>
+  }
+
+  <section class="hero hq-card">
+    <div class="hero-main">
+      <div class="title-row">
+        <div class="logo">{{ orgInitials() }}</div>
+        <div class="title-copy">
+          <h2>{{ org()?.name }}</h2>
+          <p class="hq-muted">{{ plan()?.name }} · {{ label(sub.interval) }} billing</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a class="hq-btn hq-btn-ghost" [routerLink]="['/organizations', sub.organizationId]">View organization</a>
+      @if (sub.status === 'past_due') {
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="retryPayment()">Retry payment</button>
+      }
+      @if (sub.status !== 'cancelled') {
+        <button class="hq-btn hq-btn-ghost warn-btn" type="button" (click)="openCancel()">Cancel subscription</button>
+      }
+      <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="subscriptions" (click)="openPlanChange()">
+        Change plan
+      </button>
+    </div>
+  </section>
+
+  <section class="page-stats">
+    <article class="hq-card page-stat">
+      <span>Amount</span>
+      <strong>{{ sub.amount | hqCurrency }}</strong>
+    </article>
+    <article class="hq-card page-stat">
+      <span>Seats</span>
+      <strong>{{ sub.seats }}</strong>
+    </article>
+    <article class="hq-card page-stat">
+      <span>Renewal</span>
+      <strong>{{ sub.renewalDate | date: 'mediumDate' }}</strong>
+    </article>
+    <article class="hq-card page-stat">
+      <span>Payment</span>
+      <strong class="payment-label">{{ label(sub.paymentStatus) }}</strong>
+    </article>
+  </section>
+
+  <section class="detail-layout">
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Current subscription</h3>
+      <dl class="meta-grid">
+        <div>
+          <dt>Plan</dt>
+          <dd>{{ plan()?.name }}</dd>
+        </div>
+        <div>
+          <dt>Interval</dt>
+          <dd>{{ label(sub.interval) }}</dd>
+        </div>
+        <div>
+          <dt>Start date</dt>
+          <dd>{{ sub.startDate | date: 'mediumDate' }}</dd>
+        </div>
+        <div>
+          <dt>Renewal date</dt>
+          <dd>{{ sub.renewalDate | date: 'mediumDate' }}</dd>
+        </div>
+        @if (sub.billingPeriodStart && sub.billingPeriodEnd) {
+          <div class="meta-span-2">
+            <dt>Billing period</dt>
+            <dd>{{ sub.billingPeriodStart | date: 'mediumDate' }} – {{ sub.billingPeriodEnd | date: 'mediumDate' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Payment</dt>
+          <dd><span [class]="'hq-badge ' + paymentBadgeClass(sub.paymentStatus)">{{ label(sub.paymentStatus) }}</span></dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd><span [class]="'hq-badge hq-badge-' + sub.status">{{ label(sub.status) }}</span></dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="hq-card panel">
+      <div class="panel-head">
+        <h3 class="hq-section-title">Feature entitlements</h3>
+        <span class="panel-count">{{ features().length }} features</span>
+      </div>
+      @if (features().length === 0) {
+        <p class="hq-muted empty-copy">No features included on this plan.</p>
+      } @else {
+        <div class="feature-grid">
+          @for (feature of features(); track feature.id) {
+            <span class="hq-badge hq-badge-trial">{{ feature.name }}</span>
+          }
+        </div>
+      }
+    </article>
+  </section>
+
+  <section class="hq-card panel billing-card">
+    <div class="panel-head">
+      <h3 class="hq-section-title">Billing history</h3>
+      <a class="sub-link" routerLink="/billing">View all billing →</a>
+    </div>
+    @if (invoices().length === 0) {
+      <p class="hq-muted empty-copy">No invoices recorded yet.</p>
+    } @else {
+      <div class="hq-table-wrap">
+        <table class="hq-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Issued</th>
+              <th>Due</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inv of invoices(); track inv.id) {
+              <tr>
+                <td><strong>{{ inv.number }}</strong></td>
+                <td>{{ inv.amount | hqCurrency }}</td>
+                <td><span [class]="'hq-badge ' + invoiceBadgeClass(inv.status)">{{ label(inv.status) }}</span></td>
+                <td>{{ inv.issuedAt | date: 'mediumDate' }}</td>
+                <td>{{ inv.dueAt | date: 'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <section class="hq-card panel history-card">
+    <h3 class="hq-section-title">Plan change history</h3>
+    @if (history().length === 0) {
+      <p class="hq-muted empty-copy">No plan changes recorded yet.</p>
+    } @else {
+      <div class="history-list">
+        @for (item of history(); track item.id) {
+          <article class="history-item">
+            <div class="history-marker" aria-hidden="true"></div>
+            <div class="history-body">
+              <strong>{{ data.getPlan(item.fromPlanId)?.name }} → {{ data.getPlan(item.toPlanId)?.name }}</strong>
+              <p class="hq-muted">{{ item.note }}</p>
+              <span class="history-meta">{{ item.changedBy }} · {{ item.changedAt | date: 'medium' }}</span>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+} @else {
+  <section class="hq-card empty">
+    <h2>Subscription not found</h2>
+    <a routerLink="/subscriptions" class="hq-btn hq-btn-primary">Back</a>
+  </section>
+}
+
+@if (showCancel()) {
+  <div class="dialog-backdrop" (click)="cancelCancel()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Cancel subscription</h3>
+        <p class="hq-muted">This will cancel billing for {{ org()?.name }} and update the audit trail.</p>
+      </div>
+      <div class="dialog-body">
+        <p class="hq-muted">This action cannot be undone. Billing will stop at the end of the current period.</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelCancel()">Keep subscription</button>
+        <button class="hq-btn hq-btn-danger" type="button" (click)="confirmCancel()">Confirm cancel</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showPlanChange()) {
+  <div class="dialog-backdrop" (click)="cancelPlanChange()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Change plan</h3>
+        <p class="hq-muted">Review the impact before confirming.</p>
+      </div>
+      <div class="dialog-body">
+        <label>
+          New plan
+          <app-hq-select
+            [options]="planChangeOptions()"
+            [value]="selectedPlanId()"
+            (valueChange)="selectedPlanId.set($event)"
+          />
+        </label>
+        @if (impact(); as effect) {
+          <div class="impact">
+            <p><strong>Seats:</strong> {{ effect.seats }}</p>
+            <p><strong>Locations:</strong> {{ effect.locations }}</p>
+            @if (effect.gained.length) {
+              <p><strong>Gained:</strong> {{ effect.gained.join(', ') }}</p>
+            }
+            @if (effect.lost.length) {
+              <p class="warn"><strong>Lost:</strong> {{ effect.lost.join(', ') }}</p>
+            }
+            @if (isDowngrade()) {
+              <p class="hq-muted schedule-note">Downgrades are scheduled at period end by default.</p>
+            }
+          </div>
+        }
+        @if (!isDowngrade()) {
+          <label class="toggle-inline">
+            <input type="checkbox" [checked]="scheduleAtPeriodEnd()" (change)="scheduleAtPeriodEnd.set($any($event.target).checked)" />
+            Schedule change at end of billing period
+          </label>
+        }
+        <label>
+          Audit note
+          <textarea
+            rows="3"
+            placeholder="Note for audit trail..."
+            [value]="changeNote()"
+            (input)="changeNote.set($any($event.target).value)"
+          ></textarea>
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelPlanChange()">Cancel</button>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="subscriptions" (click)="confirmPlanChange()">
+          Confirm change
+        </button>
+      </div>
+    </div>
+  </div>
+}

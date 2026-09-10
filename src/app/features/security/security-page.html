@@ -1,0 +1,198 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'audit'" (click)="tab.set('audit')">Audit logs</button>
+  <button type="button" [class.active]="tab() === 'sessions'" (click)="tab.set('sessions')">Active sessions</button>
+  <button type="button" [class.active]="tab() === 'signins'" (click)="tab.set('signins')">Sign-in activity</button>
+  <button type="button" [class.active]="tab() === 'alerts'" (click)="tab.set('alerts')">Security alerts</button>
+</app-hq-page-tabs>
+
+@if (tab() === 'audit') {
+  <section class="page-toolbar">
+    <div class="search-box">
+      <input type="search" placeholder="Search actor, action, target..." [value]="search()" (input)="search.set($any($event.target).value); auditPage.set(1)" />
+    </div>
+    <app-hq-select [options]="dateOptions" [value]="dateFilter()" minWidth="140px" (valueChange)="setDateFilter($event)" />
+    <div class="filters-wrap" [class.open]="filtersOpen()">
+      <button class="toolbar-btn outline" type="button" (click)="toggleFilters()" [class.active]="filtersOpen() || hasActiveFilters()">
+        <app-hq-icon name="filter" [size]="14" /> Filters
+        @if (activeFilterCount() > 0) { <span class="filter-badge">{{ activeFilterCount() }}</span> }
+      </button>
+      @if (filtersOpen()) {
+        <div class="filters-popover hq-popover" (click)="$event.stopPropagation()">
+          <div class="filter-group">
+            <span class="filter-label">Category</span>
+            <app-hq-select [options]="categoryOptions()" [value]="categoryFilter()" minWidth="100%" (valueChange)="categoryFilter.set($event); auditPage.set(1)" />
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Result</span>
+            <app-hq-select [options]="resultOptions" [value]="resultFilter()" minWidth="100%" (valueChange)="setResultFilter($event); auditPage.set(1)" />
+          </div>
+          @if (hasActiveFilters()) {
+            <button class="clear-filters" type="button" (click)="clearFilters()">Clear all filters</button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th><th>Actor</th><th>Action</th><th>Target</th><th>Category</th><th>Result</th><th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of pagedAudit(); track event.id) {
+            <tr class="clickable" tabindex="0" (click)="openAudit(event)" (keydown.enter)="openAudit(event)">
+              <td>{{ event.timestamp | date: 'medium' }}</td>
+              <td>{{ event.actor }}</td>
+              <td><strong>{{ event.action }}</strong></td>
+              <td>{{ event.target }}</td>
+              <td>{{ event.category }}</td>
+              <td><span [class]="'hq-badge ' + resultClass(event.result)">{{ event.result }}</span></td>
+              <td class="desc">{{ event.description }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="empty">No audit events match your filters.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-hq-pagination [page]="auditPage()" [pageSize]="pageSize" [total]="filteredAudit().length" (pageChange)="auditPage.set($event)" />
+  </section>
+} @else if (tab() === 'sessions') {
+  <section class="page-summary cols-3">
+    <button class="page-kpi tone-blue" type="button" [class.active]="riskFilter() === 'all'" (click)="riskFilter.set('all')"><span>Active sessions</span><strong>{{ sessionSummary().total }}</strong></button>
+    <button class="page-kpi tone-amber" type="button" [class.active]="riskFilter() === 'medium'" (click)="riskFilter.set('medium')"><span>Medium risk</span><strong>{{ sessionSummary().medium }}</strong></button>
+    <button class="page-kpi tone-red" type="button" [class.active]="riskFilter() === 'high'" (click)="riskFilter.set('high')"><span>High risk</span><strong>{{ sessionSummary().high }}</strong></button>
+  </section>
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr><th>User</th><th>Context</th><th>Device</th><th>Location / IP</th><th>Started</th><th>Last seen</th><th>Risk</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (session of filteredSessions(); track session.id) {
+            <tr>
+              <td><strong>{{ session.userName }}</strong><span class="sub">{{ session.email }}</span></td>
+              <td>{{ session.role }} @if (session.organizationName) { <span class="sub">{{ session.organizationName }}</span> }</td>
+              <td>{{ session.device }}</td>
+              <td>{{ session.location }}<span class="sub">{{ session.ip }}</span></td>
+              <td>{{ session.startedAt | date: 'short' }}</td>
+              <td>{{ session.lastSeenAt | date: 'short' }}</td>
+              <td><span [class]="'hq-badge ' + riskClass(session.risk)">{{ session.risk }}</span></td>
+              <td><button class="hq-btn hq-btn-ghost hq-table-action-btn" type="button" (click)="revoke(session.id)">Revoke</button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="empty">No active sessions.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+} @else if (tab() === 'signins') {
+  <section class="hq-card panel">
+    <h3 class="hq-section-title">Recent sign-in activity</h3>
+    <p class="hq-muted suspicious-note">Failed attempts flagged as suspicious activity.</p>
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead><tr><th>User</th><th>Organization</th><th>Device</th><th>Location</th><th>Time</th><th>Result</th></tr></thead>
+        <tbody>
+          @for (row of data.signInActivity; track row.id) {
+            <tr [class.suspicious]="row.result === 'failed'">
+              <td><strong>{{ row.userName }}</strong><span class="sub">{{ row.email }}</span></td>
+              <td>{{ row.organizationName ?? 'HQ' }}</td>
+              <td>{{ row.device }}</td>
+              <td>{{ row.location }} · {{ row.ip }}</td>
+              <td>{{ row.timestamp | date: 'medium' }}</td>
+              <td><span [class]="'hq-badge ' + (row.result === 'success' ? 'hq-badge-active' : 'hq-badge-cancelled')">{{ row.result }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+} @else {
+  <section class="hq-card panel">
+    <h3 class="hq-section-title">Security alerts</h3>
+    <div class="alert-list">
+      @for (alert of data.securityAlerts; track alert.id) {
+        <article class="alert-card">
+          <div class="alert-head">
+            <strong>{{ alert.title }}</strong>
+            <span [class]="'hq-badge ' + alertClass(alert.severity)">{{ alert.severity }}</span>
+          </div>
+          <p>{{ alert.description }}</p>
+          <span class="time">{{ alert.timestamp | date: 'medium' }}</span>
+        </article>
+      }
+    </div>
+  </section>
+}
+
+@if (selectedAudit(); as event) {
+  <div class="hq-drawer-backdrop" (click)="closeAuditDrawer()">
+    <aside class="hq-drawer security-drawer" (click)="$event.stopPropagation()">
+      <div class="hq-drawer-head">
+        <div>
+          <div class="drawer-badges">
+            <span [class]="'hq-badge ' + resultClass(event.result)">{{ event.result }}</span>
+            <span class="hq-badge hq-badge-archived">{{ event.category }}</span>
+          </div>
+          <h3>{{ event.action }}</h3>
+          <p class="hq-muted">{{ event.target }} · {{ event.timestamp | date: 'medium' }}</p>
+        </div>
+        <button type="button" class="hq-drawer-close" (click)="closeAuditDrawer()" aria-label="Close">×</button>
+      </div>
+      <div class="hq-drawer-body">
+        <section class="drawer-section event-hero">
+          <span>Event summary</span>
+          <strong>{{ event.description }}</strong>
+          <p class="hq-muted">Recorded by {{ event.actor }} · {{ event.timestamp | date: 'mediumDate' }}</p>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Event details</h4>
+          <dl class="detail-grid">
+            <div><dt>Actor</dt><dd>{{ event.actor }}</dd></div>
+            <div><dt>Target</dt><dd>{{ event.target }}</dd></div>
+            <div><dt>Category</dt><dd>{{ event.category }}</dd></div>
+            <div><dt>Result</dt><dd><span [class]="'hq-badge ' + resultClass(event.result)">{{ event.result }}</span></dd></div>
+            <div><dt>Timestamp</dt><dd>{{ event.timestamp | date: 'medium' }}</dd></div>
+            <div><dt>Event ID</dt><dd class="mono">{{ event.id }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="drawer-section">
+          <h4>Full event details</h4>
+          <div class="activity-detail-body">
+            @for (paragraph of auditDetailParagraphs(event); track $index) {
+              <p>{{ paragraph }}</p>
+            }
+          </div>
+        </section>
+
+        @if (event.relatedRefs?.length) {
+          <section class="drawer-section">
+            <h4>References</h4>
+            <dl class="detail-grid">
+              @for (ref of event.relatedRefs; track ref.label) {
+                <div><dt>{{ ref.label }}</dt><dd class="mono">{{ ref.value }}</dd></div>
+              }
+            </dl>
+          </section>
+        }
+      </div>
+      <div class="hq-drawer-foot">
+        <button class="hq-btn hq-btn-primary" type="button" (click)="navigateFromAudit(event)">
+          Investigate related record
+        </button>
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="closeAuditDrawer()">Close</button>
+      </div>
+    </aside>
+  </div>
+}

@@ -1,0 +1,41 @@
+:host {
+  display: block;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero h2 {
+  margin: 0;
+}
+
+.hero-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.desc {
+  color: var(--hq-text-muted);
+  font-size: 0.82rem;
+}
+
+.level-btn {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-transform: capitalize;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+}

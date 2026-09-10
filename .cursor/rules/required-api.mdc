@@ -1,0 +1,33 @@
+---
+description: Keep requiredapi.md in sync whenever HQ pages or features change
+globs: src/app/features/**,src/app/core/services/**,src/app/core/models/**,src/app/app.routes.ts,requiredapi.md
+alwaysApply: true
+---
+
+# Required APIs catalogue
+
+`requiredapi.md` at the repo root is the backend contract. The Angular app is frontend-only until the backend is wired. Do not skip this file.
+
+## When you must update it
+
+In the **same change** as any of the following, add or edit the matching section in `requiredapi.md`:
+
+- New page, route, tab, drawer, or wizard
+- New list filter, sort, export, or pagination that the server should own
+- New create / update / delete / invite / toggle / status action
+- New or changed fields on models in `src/app/core/models/`
+- New mock method on `HqDataService` or `HqAuthService`
+
+If you only restyle a screen and the data contract is unchanged, leave the file alone.
+
+## What to record
+
+For each API include: name, `METHOD /api/v1/...` endpoint, which page uses it, permission category, query/body fields, and the response shape the UI already expects.
+
+Follow existing conventions in that file: `/api/v1` prefix, INR/paise, HQ permission categories, audit side effects on mutations.
+
+## Do not
+
+- Invent a parallel API list elsewhere
+- Leave a new mock mutation undocumented
+- Mark APIs as implemented unless the frontend actually calls a backend
