@@ -1,0 +1,152 @@
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'plans'" (click)="tab.set('plans')">Plans</button>
+  <button type="button" [class.active]="tab() === 'features'" (click)="tab.set('features')">
+    Feature catalogue
+  </button>
+</app-hq-page-tabs>
+
+@if (tab() === 'plans') {
+  <section class="page-toolbar toolbar-end">
+    <div class="toolbar-actions">
+      @if (planFeatureFilter()) {
+        <span class="filter-chip">
+          Showing plans with {{ featureName(planFeatureFilter()) }}
+          <button type="button" (click)="planFeatureFilter.set('')">×</button>
+        </span>
+      }
+      <app-hq-select
+        [options]="planStatusOptions"
+        [value]="planStatusFilter()"
+        minWidth="140px"
+        (valueChange)="planStatusFilter.set($event)"
+      />
+      <button
+        class="toolbar-btn outline view-toggle-btn"
+        type="button"
+        (click)="toggleViewMode()"
+        [attr.aria-label]="viewMode() === 'grid' ? 'Switch to table view' : 'Switch to grid view'"
+      >
+        @if (viewMode() === 'grid') {
+          <app-hq-icon name="menu" [size]="14" />
+          Table view
+        } @else {
+          <app-hq-icon name="dashboard" [size]="14" />
+          Grid view
+        }
+      </button>
+      <a class="hq-btn hq-btn-primary" routerLink="/plans/new" hqRequirePermission="plans">Add plan</a>
+    </div>
+  </section>
+
+  @if (viewMode() === 'grid') {
+  <section class="plan-grid">
+    @for (plan of filteredPlans(); track plan.id) {
+      <a class="hq-card plan-card" [routerLink]="['/plans', plan.id]">
+        <div class="plan-top">
+          <h3>{{ plan.name }}</h3>
+          <span [class]="'hq-badge ' + planStatusClass(plan.status)">{{ plan.status }}</span>
+        </div>
+        <p class="price">
+          {{ plan.priceMonthly | hqCurrency }}
+          <span>/mo</span>
+        </p>
+        <ul>
+          <li>{{ plan.seatsIncluded }} seats included</li>
+          <li>{{ plan.locationsIncluded }} locations included</li>
+          <li>{{ plan.featureIds.length }} features</li>
+          <li>{{ plan.subscribers }} active subscribers</li>
+        </ul>
+        <div class="plan-foot">
+          <span class="hq-muted">Updated {{ plan.updatedAt | date: 'mediumDate' }}</span>
+          <span class="hq-link">View detail →</span>
+        </div>
+      </a>
+    }
+  </section>
+  } @else {
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Price</th>
+            <th>Seats</th>
+            <th>Locations</th>
+            <th>Features</th>
+            <th>Subscribers</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (plan of filteredPlans(); track plan.id) {
+            <tr class="clickable" [routerLink]="['/plans', plan.id]">
+              <td><strong>{{ plan.name }}</strong></td>
+              <td>{{ plan.priceMonthly | hqCurrency }}/mo</td>
+              <td>{{ plan.seatsIncluded }}</td>
+              <td>{{ plan.locationsIncluded }}</td>
+              <td>{{ plan.featureIds.length }}</td>
+              <td>{{ plan.subscribers }}</td>
+              <td><span [class]="'hq-badge ' + planStatusClass(plan.status)">{{ plan.status }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  }
+} @else {
+  <section class="page-toolbar toolbar-end">
+    <div class="toolbar-actions">
+      <app-hq-select
+        [options]="featureCategoryOptions()"
+        [value]="featureCategory()"
+        minWidth="168px"
+        (valueChange)="featureCategory.set($event)"
+      />
+    </div>
+  </section>
+
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Type</th>
+            <th>Available in</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (feature of filteredFeatures(); track feature.id) {
+            <tr class="clickable" tabindex="0" (click)="viewPlansWithFeature(feature.id)" (keydown.enter)="viewPlansWithFeature(feature.id)">
+              <td>
+                <strong>{{ feature.name }}</strong>
+                <span class="desc">{{ feature.description }}</span>
+              </td>
+              <td>{{ feature.category }}</td>
+              <td>
+                <span
+                  [class]="
+                    'hq-badge ' +
+                    (feature.status === 'available'
+                      ? 'hq-badge-active'
+                      : feature.status === 'beta'
+                        ? 'hq-badge-trial'
+                        : 'hq-badge-archived')
+                  "
+                >
+                  {{ feature.status }}
+                </span>
+              </td>
+              <td>{{ feature.optional ? 'Optional' : 'Core' }}</td>
+              <td>{{ plansWithFeature(feature.id) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

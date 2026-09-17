@@ -1,0 +1,447 @@
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'admins'" (click)="tab.set('admins')">
+    Customer admins
+  </button>
+  <button type="button" [class.active]="tab() === 'users'" (click)="tab.set('users')">
+    Global directory
+  </button>
+</app-hq-page-tabs>
+
+<section class="page-toolbar users-toolbar">
+  <div class="search-box">
+    <input
+      type="search"
+      placeholder="Search by name, email, or organization..."
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+  </div>
+
+  <div class="users-filters-wrap" [class.open]="filtersOpen()">
+    <button
+      class="toolbar-btn outline"
+      type="button"
+      (click)="toggleFilters()"
+      [class.active]="filtersOpen() || hasActiveFilters()"
+      aria-haspopup="true"
+      [attr.aria-expanded]="filtersOpen()"
+    >
+      <app-hq-icon name="filter" [size]="14" />
+      Filters
+      @if (activeFilterCount() > 0) {
+        <span class="filter-badge">{{ activeFilterCount() }}</span>
+      }
+    </button>
+    @if (filtersOpen()) {
+      <div
+        class="users-filters-popover hq-popover"
+        role="dialog"
+        aria-label="Filters"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="filter-group">
+          <span class="filter-label">Status</span>
+          <app-hq-select
+            [options]="statusOptions"
+            [value]="statusFilter()"
+            minWidth="100%"
+            (valueChange)="setStatusFilter($event)"
+          />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Organization</span>
+          <app-hq-select
+            [options]="orgOptions()"
+            [value]="orgFilter()"
+            minWidth="100%"
+            (valueChange)="orgFilter.set($event)"
+          />
+        </div>
+        @if (tab() === 'users') {
+          <div class="filter-group">
+            <span class="filter-label">Role</span>
+            <app-hq-select
+              [options]="roleOptions"
+              [value]="roleFilter()"
+              minWidth="100%"
+              (valueChange)="setRoleFilter($event)"
+            />
+          </div>
+        }
+        @if (hasActiveFilters()) {
+          <button class="clear-filters" type="button" (click)="clearFilters()">Clear all filters</button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (tab() === 'admins') {
+    <button class="hq-btn hq-btn-primary invite-btn" type="button" hqRequirePermission="users" (click)="openInvite()">Invite admin</button>
+  }
+</section>
+
+<section class="hq-card table-card">
+  <div class="hq-table-wrap">
+    @if (tab() === 'admins') {
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Admin</th>
+            <th>Organization</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last active</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (admin of pagedAdmins(); track admin.id) {
+            <tr class="clickable" tabindex="0" (click)="openAdminProfile(admin.id)" (keydown.enter)="openAdminProfile(admin.id)">
+              <td>
+                <div class="person">
+                  <div class="avatar" [style.background]="admin.avatarColor">{{ initials(admin.name) }}</div>
+                  <div>
+                    <strong>{{ admin.name }}</strong>
+                    <span>{{ admin.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <a [routerLink]="['/organizations', admin.organizationId]">
+                  {{ data.getOrganization(admin.organizationId)?.name }}
+                </a>
+              </td>
+              <td>{{ admin.role }}</td>
+              <td><span [class]="'hq-badge ' + badgeClass(admin.status)">{{ admin.status }}</span></td>
+              <td>{{ admin.lastActiveAt | date: 'mediumDate' }}</td>
+              <td class="actions" (click)="$event.stopPropagation()">
+                @if (admin.status === 'deactivated') {
+                  <button class="hq-btn hq-btn-ghost hq-table-action-btn" type="button" (click)="toggleAdmin(admin.id, 'active')">
+                    Reactivate
+                  </button>
+                } @else if (admin.status === 'active') {
+                  <button class="hq-btn hq-btn-ghost hq-table-action-btn" type="button" (click)="toggleAdmin(admin.id, 'deactivated')">
+                    Deactivate
+                  </button>
+                } @else {
+                  <button class="hq-btn hq-btn-ghost hq-table-action-btn" type="button" (click)="resendInvite(admin.id)">
+                    Resend
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6"><app-hq-empty-state title="No admins match" description="Try adjusting your search or filters." /></td></tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Organization</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last active</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of pagedUsers(); track user.id) {
+            <tr class="clickable" tabindex="0" (click)="openUserProfile(user.id)" (keydown.enter)="openUserProfile(user.id)">
+              <td>
+                <div class="person">
+                  <div class="person-avatar">{{ initials(user.name) }}</div>
+                  <div>
+                    <strong>{{ user.name }}</strong>
+                    <span>{{ user.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <a [routerLink]="['/organizations', user.organizationId]">
+                  {{ data.getOrganization(user.organizationId)?.name }}
+                </a>
+              </td>
+              <td>{{ user.role }}</td>
+              <td><span [class]="'hq-badge ' + badgeClass(user.status)">{{ user.status }}</span></td>
+              <td>{{ user.lastActiveAt | date: 'mediumDate' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5"><app-hq-empty-state title="No users match" description="Try adjusting your search or filters." /></td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+  <app-hq-pagination
+    [page]="page()"
+    [pageSize]="pageSize"
+    [total]="tab() === 'admins' ? filteredAdmins().length : filteredUsers().length"
+    (pageChange)="page.set($event)"
+  />
+</section>
+
+@if (showInvite()) {
+  <div class="dialog-backdrop" (click)="cancelInvite()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Invite customer admin</h3>
+      </div>
+      <div class="dialog-body">
+        <label>
+          Organization
+          <app-hq-select
+            [options]="inviteOrgOptions()"
+            [value]="inviteOrgId()"
+            (valueChange)="inviteOrgId.set($event)"
+          />
+        </label>
+        <label>
+          Full name
+          <input [value]="inviteName()" (input)="inviteName.set($any($event.target).value)" />
+        </label>
+        <label>
+          Email
+          <input type="email" [value]="inviteEmail()" (input)="inviteEmail.set($any($event.target).value)" />
+        </label>
+        <label>
+          Role
+          <input [value]="inviteRole()" (input)="inviteRole.set($any($event.target).value)" />
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelInvite()">Cancel</button>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="users" (click)="submitInvite()">Send invitation</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (adminDrawerOpen() && selectedAdmin(); as admin) {
+  @if (selectedAdminDetail(); as detail) {
+    <div class="hq-drawer-backdrop" (click)="closeAdminDrawer()">
+      <aside class="hq-drawer users-drawer" (click)="$event.stopPropagation()">
+        <div class="hq-drawer-head">
+          <div class="person">
+            <div class="avatar" [style.background]="admin.avatarColor">{{ initials(admin.name) }}</div>
+            <div>
+              <div class="drawer-badges">
+                <span [class]="'hq-badge ' + badgeClass(admin.status)">{{ admin.status }}</span>
+                <span class="hq-badge hq-badge-archived">{{ admin.role }}</span>
+              </div>
+              <h3>{{ admin.name }}</h3>
+              <p class="hq-muted">{{ admin.email }}</p>
+            </div>
+          </div>
+          <button type="button" class="hq-drawer-close" (click)="closeAdminDrawer()" aria-label="Close">×</button>
+        </div>
+        <div class="hq-drawer-body">
+          <section class="drawer-section">
+            <h4>Summary</h4>
+            <p class="profile-summary">{{ detail.summary }}</p>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Profile</h4>
+            <div class="profile-detail-body">
+              @for (paragraph of detail.profileParagraphs; track $index) {
+                <p>{{ paragraph }}</p>
+              }
+            </div>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Account details</h4>
+            <dl class="hq-drawer-meta">
+              @for (ref of detail.accountRefs; track ref.label) {
+                <div><dt>{{ ref.label }}</dt><dd [class.mono]="ref.label === 'User ID' || ref.label === 'Email'">{{ ref.value }}</dd></div>
+              }
+            </dl>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Organization context</h4>
+            <dl class="hq-drawer-meta">
+              @for (ref of detail.organizationRefs; track ref.label) {
+                <div>
+                  <dt>{{ ref.label }}</dt>
+                  <dd>
+                    @if (ref.label === 'Organization') {
+                      <a [routerLink]="['/organizations', admin.organizationId]">{{ ref.value }}</a>
+                    } @else {
+                      {{ ref.value }}
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Access & permissions</h4>
+            <ul class="access-list">
+              @for (item of detail.accessItems; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Recent sign-ins</h4>
+            <div class="drawer-activity">
+              @for (signIn of detail.signIns; track signIn.id) {
+                <div class="activity-row">
+                  <div class="activity-row-head">
+                    <strong>{{ signIn.device }}</strong>
+                    <span [class]="'hq-badge ' + signInResultClass(signIn.result)">{{ signIn.result }}</span>
+                  </div>
+                  <p class="hq-muted">{{ signIn.location }} · {{ signIn.ip }}</p>
+                  <span>{{ signIn.timestamp | date: 'medium' }}</span>
+                </div>
+              } @empty {
+                <p class="hq-muted">No sign-in history recorded for this user.</p>
+              }
+            </div>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Platform activity</h4>
+            <div class="drawer-activity">
+              @for (event of detail.auditEvents; track event.id) {
+                <div class="activity-row">
+                  <strong>{{ event.action }}</strong>
+                  <p class="hq-muted">{{ event.description }}</p>
+                  <span>{{ event.timestamp | date: 'short' }}</span>
+                </div>
+              } @empty {
+                <p class="hq-muted">No audit events linked to this user yet.</p>
+              }
+            </div>
+          </section>
+        </div>
+        <div class="hq-drawer-foot">
+          @if (admin.status === 'invited') {
+            <button class="hq-btn hq-btn-ghost" type="button" (click)="resendInvite(admin.id)">Resend invitation</button>
+          }
+          @if (admin.status === 'active') {
+            <button class="hq-btn hq-btn-ghost warn" type="button" (click)="toggleAdmin(admin.id, 'deactivated')">Deactivate admin</button>
+          } @else if (admin.status === 'deactivated') {
+            <button class="hq-btn hq-btn-ghost" type="button" (click)="toggleAdmin(admin.id, 'active')">Reactivate admin</button>
+          }
+          <a class="hq-btn hq-btn-primary" [routerLink]="['/organizations', admin.organizationId]">Open organization</a>
+        </div>
+      </aside>
+    </div>
+  }
+}
+
+@if (drawerOpen() && selectedUser(); as user) {
+  @if (selectedUserDetail(); as detail) {
+    <div class="hq-drawer-backdrop" (click)="closeDrawer()">
+      <aside class="hq-drawer users-drawer" (click)="$event.stopPropagation()">
+        <div class="hq-drawer-head">
+          <div class="person">
+            <div class="person-avatar">{{ initials(user.name) }}</div>
+            <div>
+              <div class="drawer-badges">
+                <span [class]="'hq-badge ' + badgeClass(user.status)">{{ user.status }}</span>
+                <span class="hq-badge hq-badge-archived">{{ user.role }}</span>
+              </div>
+              <h3>{{ user.name }}</h3>
+              <p class="hq-muted">{{ user.email }}</p>
+            </div>
+          </div>
+          <button type="button" class="hq-drawer-close" (click)="closeDrawer()" aria-label="Close">×</button>
+        </div>
+        <div class="hq-drawer-body">
+          <section class="drawer-section">
+            <h4>Summary</h4>
+            <p class="profile-summary">{{ detail.summary }}</p>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Profile</h4>
+            <div class="profile-detail-body">
+              @for (paragraph of detail.profileParagraphs; track $index) {
+                <p>{{ paragraph }}</p>
+              }
+            </div>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Account details</h4>
+            <dl class="hq-drawer-meta">
+              @for (ref of detail.accountRefs; track ref.label) {
+                <div><dt>{{ ref.label }}</dt><dd [class.mono]="ref.label === 'User ID' || ref.label === 'Email'">{{ ref.value }}</dd></div>
+              }
+            </dl>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Organization context</h4>
+            <dl class="hq-drawer-meta">
+              @for (ref of detail.organizationRefs; track ref.label) {
+                <div>
+                  <dt>{{ ref.label }}</dt>
+                  <dd>
+                    @if (ref.label === 'Organization') {
+                      <a [routerLink]="['/organizations', user.organizationId]">{{ ref.value }}</a>
+                    } @else {
+                      {{ ref.value }}
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Access & permissions</h4>
+            <ul class="access-list">
+              @for (item of detail.accessItems; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Recent sign-ins</h4>
+            <div class="drawer-activity">
+              @for (signIn of detail.signIns; track signIn.id) {
+                <div class="activity-row">
+                  <div class="activity-row-head">
+                    <strong>{{ signIn.device }}</strong>
+                    <span [class]="'hq-badge ' + signInResultClass(signIn.result)">{{ signIn.result }}</span>
+                  </div>
+                  <p class="hq-muted">{{ signIn.location }} · {{ signIn.ip }}</p>
+                  <span>{{ signIn.timestamp | date: 'medium' }}</span>
+                </div>
+              } @empty {
+                <p class="hq-muted">No sign-in history recorded for this user.</p>
+              }
+            </div>
+          </section>
+
+          <section class="drawer-section">
+            <h4>Platform activity</h4>
+            <div class="drawer-activity">
+              @for (event of detail.auditEvents; track event.id) {
+                <div class="activity-row">
+                  <strong>{{ event.action }}</strong>
+                  <p class="hq-muted">{{ event.description }}</p>
+                  <span>{{ event.timestamp | date: 'short' }}</span>
+                </div>
+              } @empty {
+                <p class="hq-muted">No audit events linked to this user yet.</p>
+              }
+            </div>
+          </section>
+        </div>
+        <div class="hq-drawer-foot">
+          <a class="hq-btn hq-btn-primary" [routerLink]="['/organizations', user.organizationId]">Open organization</a>
+        </div>
+      </aside>
+    </div>
+  }
+}

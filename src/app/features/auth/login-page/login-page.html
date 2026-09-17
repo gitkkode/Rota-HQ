@@ -1,0 +1,69 @@
+<section class="auth-card">
+  <div class="auth-card-head">
+    <h2>Sign in</h2>
+    <p>Access the Workforce HQ platform control plane.</p>
+  </div>
+
+  <form class="auth-form" (submit)="submit($event)" novalidate>
+    @if (error()) {
+      <div class="auth-error" role="alert">{{ error() }}</div>
+    }
+
+    <label>
+      Email address
+      <input
+        type="email"
+        autocomplete="email"
+        placeholder="you@company.com"
+        [value]="email()"
+        (input)="email.set($any($event.target).value)"
+      />
+    </label>
+
+    <label>
+      Password
+      <input
+        type="password"
+        autocomplete="current-password"
+        placeholder="Enter your password"
+        [value]="password()"
+        (input)="password.set($any($event.target).value)"
+      />
+    </label>
+
+    <div class="auth-row auth-row-end">
+      <a class="auth-link" routerLink="/auth/forgot-password">Forgot password?</a>
+    </div>
+
+    <button class="hq-btn hq-btn-primary auth-submit" type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Signing in…' : 'Sign in' }}
+    </button>
+  </form>
+
+  <div class="auth-demo">
+    <div class="auth-demo-head">
+      <strong>Demo HQ accounts</strong>
+      <span>Pass: <code>Workforce123!</code></span>
+    </div>
+    <p class="demo-hint">Click a role to sign in instantly and see that role's sidebar and permissions.</p>
+    <div class="demo-grid">
+      @for (account of demoAccounts; track account.email) {
+        <button
+          type="button"
+          class="demo-account"
+          [class.selected]="selectedDemoEmail() === account.email"
+          [disabled]="submitting()"
+          (click)="signInAs(account)"
+        >
+          <span class="demo-role">{{ account.role }}</span>
+          <span class="demo-email">{{ account.email }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <p class="auth-foot">
+    New to Workforce HQ?
+    <a class="auth-link" routerLink="/auth/register">Create an account</a>
+  </p>
+</section>

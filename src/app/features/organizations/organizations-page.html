@@ -1,0 +1,169 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<section class="page-toolbar org-toolbar">
+  <div class="search-box">
+    <input
+      type="search"
+      placeholder="Search organizations..."
+      [value]="effectiveSearch()"
+      (input)="onSearch($any($event.target).value)"
+    />
+  </div>
+
+  <div class="filters-wrap" [class.open]="filtersOpen()">
+    <button
+      class="toolbar-btn outline"
+      type="button"
+      (click)="toggleFilters()"
+      [class.active]="filtersOpen() || hasActiveFilters()"
+      aria-haspopup="true"
+      [attr.aria-expanded]="filtersOpen()"
+    >
+      <app-hq-icon name="filter" [size]="14" />
+      Filters
+      @if (activeFilterCount() > 0) {
+        <span class="filter-badge">{{ activeFilterCount() }}</span>
+      }
+    </button>
+    @if (filtersOpen()) {
+      <div
+        class="filters-popover hq-popover"
+        role="dialog"
+        aria-label="Organization filters"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="filter-group">
+          <span class="filter-label">Status</span>
+          <app-hq-select
+            [options]="statusOptions()"
+            [value]="effectiveStatus()"
+            minWidth="100%"
+            (valueChange)="setStatus($event)"
+          />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Subscription</span>
+          <app-hq-select
+            [options]="subscriptionOptions()"
+            [value]="subscriptionFilter()"
+            minWidth="100%"
+            (valueChange)="setSubscriptionFilter($event)"
+          />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Plan</span>
+          <app-hq-select
+            [options]="planOptions()"
+            [value]="effectivePlan()"
+            minWidth="100%"
+            (valueChange)="setPlan($event)"
+          />
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Primary admin</span>
+          <app-hq-select
+            [options]="adminOptions()"
+            [value]="adminFilter()"
+            minWidth="100%"
+            (valueChange)="setAdminFilter($event)"
+          />
+        </div>
+        @if (hasActiveFilters()) {
+          <button class="clear-filters" type="button" (click)="clearFilters()">Clear all filters</button>
+        }
+      </div>
+    }
+  </div>
+
+  <app-hq-select
+    class="sort-select"
+    [options]="sortOptions"
+    [value]="currentSortValue()"
+    minWidth="160px"
+    (valueChange)="setSort($event)"
+    (opened)="closeFilters()"
+  />
+
+  <div class="toolbar-actions">
+    @if (selected().size > 0) {
+      <button class="hq-btn hq-btn-ghost" type="button" (click)="exportSelected()">
+        Export ({{ selected().size }})
+      </button>
+    }
+    <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="organizations" (click)="openCreate()">Create Organization</button>
+  </div>
+</section>
+
+<section class="hq-card table-card">
+  <div class="table-head">
+    <div>
+      <h2 class="hq-section-title">Organizations</h2>
+      <p class="hq-muted">{{ filtered().length }} customers across the Workforce platform</p>
+    </div>
+  </div>
+
+  <div class="hq-table-wrap">
+    <table class="hq-table">
+      <thead>
+        <tr>
+          <th class="check-col">
+            <input type="checkbox" [checked]="allSelected()" (change)="toggleSelectAll()" aria-label="Select all" />
+          </th>
+          <th>Organization</th>
+          <th>Status</th>
+          <th>Subscription</th>
+          <th>Plan</th>
+          <th>Users</th>
+          <th>MRR</th>
+          <th>Last Activity</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (org of paged(); track org.id) {
+          <tr [routerLink]="['/organizations', org.id]" class="clickable">
+            <td class="check-col" (click)="$event.stopPropagation()">
+              <input
+                type="checkbox"
+                [checked]="selected().has(org.id)"
+                (change)="toggleSelect(org.id, $event)"
+                [attr.aria-label]="'Select ' + org.name"
+              />
+            </td>
+            <td>
+              <div class="org-cell">
+                <div class="logo">{{ org.name.slice(0, 2).toUpperCase() }}</div>
+                <div>
+                  <strong>{{ org.name }}</strong>
+                  <span class="hq-muted">{{ org.industry }} · {{ org.country }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span [class]="'hq-badge hq-badge-' + org.status">{{ label(org.status) }}</span>
+            </td>
+            <td>
+              <span [class]="'hq-badge hq-badge-' + org.subscriptionStatus">{{ label(org.subscriptionStatus) }}</span>
+            </td>
+            <td>{{ data.getPlan(org.planId)?.name }}</td>
+            <td>{{ org.userCount }}</td>
+            <td>{{ org.mrr | hqCurrency }}</td>
+            <td>{{ org.lastActivityAt | date: 'mediumDate' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="8">
+              <app-hq-empty-state title="No organizations match" description="Try adjusting your search or filters." />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-hq-pagination
+    [page]="page()"
+    [pageSize]="pageSize"
+    [total]="filtered().length"
+    (pageChange)="page.set($event)"
+  />
+</section>

@@ -1,0 +1,69 @@
+@if (role(); as current) {
+  <app-hq-breadcrumbs [items]="breadcrumb()" />
+
+  <section class="hero hq-card">
+    <div>
+      <h2>{{ current.name }}</h2>
+      <p class="hq-muted">{{ current.description }}</p>
+    </div>
+    <div class="hero-meta">
+      <span class="hq-badge hq-badge-active">{{ current.operatorCount }} operators</span>
+      <span class="hq-muted">Updated {{ current.updatedAt | date: 'mediumDate' }}</span>
+    </div>
+  </section>
+
+  <section class="hq-card table-card">
+    <div class="table-head">
+      <div>
+        <h2 class="hq-section-title">Permission matrix</h2>
+        <p class="hq-muted">
+          @if (perms.canEditPermissions()) {
+            Click an access level to cycle through none → read → write → full.
+          } @else {
+            Access levels are read-only for your role.
+          }
+        </p>
+      </div>
+    </div>
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Access level</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (cat of data.permissionCategories; track cat.key) {
+            <tr>
+              <td><strong>{{ cat.label }}</strong></td>
+              <td class="desc">{{ cat.description }}</td>
+              <td>
+                @if (perms.canEditPermissions()) {
+                  <button
+                    type="button"
+                    class="level-btn"
+                    [class]="'hq-badge ' + permissionClass(current.permissions[cat.key])"
+                    (click)="cyclePermission(cat.key, current.permissions[cat.key])"
+                  >
+                    {{ current.permissions[cat.key] }}
+                  </button>
+                } @else {
+                  <span [class]="'hq-badge ' + permissionClass(current.permissions[cat.key])">
+                    {{ current.permissions[cat.key] }}
+                  </span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+} @else {
+  <section class="hq-card empty">
+    <h2>Role not found</h2>
+    <a routerLink="/permissions" class="hq-btn hq-btn-primary">Back to permissions</a>
+  </section>
+}

@@ -1,0 +1,207 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<app-hq-page-tabs>
+  <button type="button" [class.active]="pageTab() === 'inbox'" (click)="pageTab.set('inbox')">Inbox</button>
+  <button type="button" [class.active]="pageTab() === 'templates'" (click)="pageTab.set('templates')">Templates</button>
+</app-hq-page-tabs>
+
+@if (pageTab() === 'inbox') {
+<section class="notifications-header hq-card">
+  <div class="header-copy">
+    <h2 class="hq-section-title">Inbox</h2>
+    <p class="hq-muted">{{ filtered().length }} notification{{ filtered().length === 1 ? '' : 's' }}</p>
+  </div>
+
+  <div class="header-stats">
+    <app-hq-page-tabs tabsClass="stat-tabs">
+      <button
+        type="button"
+        [class.active]="listFilter() === 'unread'"
+        (click)="setListFilter('unread')"
+      >
+        <span>Unread</span>
+        <strong>{{ data.unreadNotificationCount() }}</strong>
+      </button>
+      <button
+        type="button"
+        [class.active]="listFilter() === 'all'"
+        (click)="setListFilter('all')"
+      >
+        <span>Total</span>
+        <strong>{{ data.visibleNotifications().length }}</strong>
+      </button>
+    </app-hq-page-tabs>
+  </div>
+
+  <button class="hq-btn hq-btn-ghost mark-all" type="button" (click)="markAll()">Mark all as read</button>
+</section>
+
+<section class="page-toolbar notifications-toolbar">
+  <div class="search-box">
+    <input
+      type="search"
+      placeholder="Search notifications..."
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+  </div>
+
+  <div class="filters-wrap" [class.open]="filtersOpen()">
+    <button
+      class="toolbar-btn outline"
+      type="button"
+      (click)="toggleFilters()"
+      [class.active]="filtersOpen() || hasActiveFilters()"
+      aria-haspopup="true"
+      [attr.aria-expanded]="filtersOpen()"
+    >
+      <app-hq-icon name="filter" [size]="14" />
+      Filters
+      @if (activeFilterCount() > 0) {
+        <span class="filter-badge">{{ activeFilterCount() }}</span>
+      }
+    </button>
+    @if (filtersOpen()) {
+      <div
+        class="filters-popover hq-popover"
+        role="dialog"
+        aria-label="Filters"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="filter-group">
+          <span class="filter-label">Category</span>
+          <app-hq-select
+            [options]="categoryOptions"
+            [value]="category()"
+            minWidth="100%"
+            (valueChange)="setCategory($event)"
+          />
+        </div>
+        <label class="filter-check">
+          <input type="checkbox" [checked]="unreadOnly()" (change)="unreadOnly.set($any($event.target).checked)" />
+          Unread only
+        </label>
+        @if (hasActiveFilters()) {
+          <button class="clear-filters" type="button" (click)="clearFilters()">Clear all filters</button>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<section class="inbox hq-card">
+  <div class="inbox-list">
+    <div class="list-head">
+      <span class="list-title">Messages</span>
+      @if (listFilter() === 'unread') {
+        <span class="hq-badge hq-badge-trial">Unread only</span>
+      }
+    </div>
+
+    <div class="list-scroll">
+      @for (item of filtered(); track item.id) {
+        <button
+          type="button"
+          class="notice"
+          [class.active]="(selectedId() ?? filtered()[0]?.id) === item.id"
+          [class.unread]="!item.read"
+          (click)="open(item.id)"
+        >
+          <span class="notice-dot" [class.visible]="!item.read" aria-hidden="true"></span>
+          <span class="notice-content">
+            <span class="notice-top">
+              <strong>{{ item.title }}</strong>
+            </span>
+            <span class="notice-preview">{{ item.body }}</span>
+            <span class="notice-meta">
+              <span class="hq-badge hq-badge-archived">{{ categoryLabel(item.category) }}</span>
+              <span class="notice-time">{{ item.createdAt | date: 'MMM d, y · h:mm a' }}</span>
+            </span>
+          </span>
+        </button>
+      } @empty {
+        <app-hq-empty-state title="No notifications match" description="Try adjusting your filters." />
+      }
+    </div>
+  </div>
+
+  <article class="inbox-detail">
+    @if (selected(); as note) {
+      <div class="detail-head">
+        <div class="detail-badges">
+          <span [class]="'hq-badge ' + categoryClass(note.category)">{{ categoryLabel(note.category) }}</span>
+          @if (!note.read) {
+            <span class="hq-badge hq-badge-trial">Unread</span>
+          }
+        </div>
+        <h2>{{ note.title }}</h2>
+        <p class="detail-time">{{ note.createdAt | date: 'full' }}</p>
+      </div>
+
+      <div class="detail-body">
+        <p>{{ note.body }}</p>
+      </div>
+
+      @if (note.organizationId) {
+        <div class="detail-actions">
+          <a class="hq-btn hq-btn-ghost" [routerLink]="['/organizations', note.organizationId]">
+            Open related organization
+          </a>
+        </div>
+      }
+    } @else {
+      <div class="detail-empty">
+        <app-hq-icon name="bell" [size]="32" />
+        <h3>Select a notification</h3>
+        <p class="hq-muted">Choose a message from the list to view its full details.</p>
+      </div>
+    }
+  </article>
+</section>
+} @else {
+  <section class="hq-card table-card">
+    <div class="panel-head">
+      <h2 class="hq-section-title">Notification templates</h2>
+      <p class="hq-muted">Control which automated emails and alerts are sent to customers and operators.</p>
+    </div>
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Template</th>
+            <th>Channel</th>
+            <th>Subject</th>
+            <th>Category</th>
+            <th>Last updated</th>
+            <th>Enabled</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tpl of data.notificationTemplates(); track tpl.id) {
+            <tr>
+              <td>
+                <strong>{{ tpl.name }}</strong>
+                <span class="desc">{{ tpl.key }}</span>
+              </td>
+              <td>{{ tpl.channel.replace('_', ' ') }}</td>
+              <td>{{ tpl.subject }}</td>
+              <td>{{ categoryLabel(tpl.category) }}</td>
+              <td>{{ tpl.updatedAt | date: 'mediumDate' }}</td>
+              <td>
+                <button
+                  class="switch"
+                  type="button"
+                  [class.on]="tpl.enabled"
+                  (click)="toggleTemplate(tpl.id)"
+                  [attr.aria-pressed]="tpl.enabled"
+                >
+                  <span></span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

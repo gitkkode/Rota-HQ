@@ -3,11 +3,11 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "analytics": false
+    "analytics": "7010c7d1-929e-4db9-8200-756d6fac3a32"
   },
   "newProjectRoot": "projects",
   "projects": {
-    "billsalon-admin": {
+    "Workforce-HQ": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -32,7 +32,15 @@
             ],
             "styles": [
               "src/styles.scss"
-            ]
+            ],
+            "server": "src/main.server.ts",
+            "outputMode": "server",
+            "security": {
+              "allowedHosts": []
+            },
+            "ssr": {
+              "entry": "src/server.ts"
+            }
           },
           "configurations": {
             "production": {
@@ -44,8 +52,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "12kB",
+                  "maximumError": "20kB"
                 }
               ],
               "outputHashing": "all"
@@ -62,10 +70,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "billsalon-admin:build:production"
+              "buildTarget": "Workforce-HQ:build:production"
             },
             "development": {
-              "buildTarget": "billsalon-admin:build:development"
+              "buildTarget": "Workforce-HQ:build:development"
             }
           },
           "defaultConfiguration": "development"

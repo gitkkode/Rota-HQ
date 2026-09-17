@@ -1,0 +1,362 @@
+@if (org(); as organization) {
+  <app-hq-breadcrumbs [items]="breadcrumb()" />
+
+  <section class="hero hq-card">
+    <div class="hero-main">
+      <div class="title-row">
+        <div class="logo">{{ organization.name.slice(0, 2).toUpperCase() }}</div>
+        <div class="title-copy">
+          <h2>{{ organization.name }}</h2>
+          <p class="hq-muted">{{ organization.industry }} · {{ organization.country }}</p>
+          <span class="title-badge" [class]="'hq-badge hq-badge-' + organization.status">
+            {{ organization.status.replace('_', ' ') }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      @if (organization.status === 'suspended' || organization.status === 'cancelled' || organization.status === 'archived') {
+        <button class="hq-btn hq-btn-ghost" type="button" hqRequirePermission="organizations" (click)="activate()">Activate</button>
+      }
+      @if (organization.status !== 'suspended' && organization.status !== 'cancelled' && organization.status !== 'archived') {
+        <button class="hq-btn hq-btn-ghost" type="button" hqRequirePermission="organizations" (click)="openSuspend()">Suspend</button>
+        <button class="hq-btn hq-btn-ghost warn-btn" type="button" hqRequirePermission="organizations" (click)="openCancel()">Cancel</button>
+        <button class="hq-btn hq-btn-ghost" type="button" hqRequirePermission="organizations" (click)="openArchive()">Archive</button>
+      }
+      <button class="hq-btn hq-btn-ghost" type="button" hqRequirePermission="support" (click)="openSupport()">Support access</button>
+      <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="users" (click)="openInvite()">Invite Admin</button>
+    </div>
+  </section>
+
+  <app-hq-page-tabs>
+    <button type="button" [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
+    <button type="button" [class.active]="tab() === 'admins'" (click)="tab.set('admins')">Admins</button>
+    <button type="button" [class.active]="tab() === 'subscription'" (click)="tab.set('subscription')">Subscription</button>
+    <button type="button" [class.active]="tab() === 'features'" (click)="tab.set('features')">Features</button>
+    <button type="button" [class.active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</button>
+    <button type="button" [class.active]="tab() === 'support'" (click)="tab.set('support')">Support</button>
+  </app-hq-page-tabs>
+
+  @if (tab() === 'overview') {
+    <section class="page-stats">
+      <article class="hq-card page-stat"><span>Users</span><strong>{{ organization.userCount }}</strong></article>
+      <article class="hq-card page-stat"><span>Employees</span><strong>{{ organization.employeeCount }}</strong></article>
+      <article class="hq-card page-stat"><span>Locations</span><strong>{{ organization.locationCount }}</strong></article>
+      <article class="hq-card page-stat"><span>MRR</span><strong>{{ organization.mrr | hqCurrency }}</strong></article>
+    </section>
+
+    <section class="detail-grid">
+      <article class="hq-card panel">
+        <h3 class="hq-section-title">Company information</h3>
+        <dl class="meta">
+          <div><dt>Slug</dt><dd>{{ organization.slug }}</dd></div>
+          <div><dt>Created</dt><dd>{{ organization.createdAt | date: 'mediumDate' }}</dd></div>
+          <div><dt>Last activity</dt><dd>{{ organization.lastActivityAt | date: 'medium' }}</dd></div>
+          <div><dt>Subscription</dt><dd>{{ organization.subscriptionStatus.replace('_', ' ') }}</dd></div>
+        </dl>
+        <h4>Primary administrator</h4>
+        @if (admin(); as primary) {
+          <div class="admin-card">
+            <div class="avatar" [style.background]="primary.avatarColor">{{ initials(primary.name) }}</div>
+            <div>
+              <strong>{{ primary.name }}</strong>
+              <p class="hq-muted">{{ primary.email }}</p>
+            </div>
+          </div>
+        }
+      </article>
+
+      <article class="hq-card panel">
+        <h3 class="hq-section-title">Usage against limits</h3>
+        <div class="usage-list">
+          @for (metric of [
+            { label: 'Users', used: organization.usage.users, limit: organization.usage.usersLimit },
+            { label: 'Locations', used: organization.usage.locations, limit: organization.usage.locationsLimit },
+            { label: 'Managers', used: organization.usage.managers, limit: organization.usage.managersLimit },
+            { label: 'Storage', used: organization.usage.storageGb, limit: organization.usage.storageLimitGb, suffix: ' GB' }
+          ]; track metric.label) {
+            <div class="usage-row">
+              <div class="usage-label">
+                <span>{{ metric.label }}</span>
+                <strong>{{ metric.used }}/{{ metric.limit }}{{ metric.suffix ?? '' }}</strong>
+              </div>
+              <div class="meter" [attr.data-tone]="usageClass(metric.used, metric.limit)">
+                <div [style.width.%]="usagePct(metric.used, metric.limit) * 100"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="hq-card panel">
+        <h3 class="hq-section-title">Security summary</h3>
+        <dl class="meta">
+          <div><dt>Active sessions</dt><dd>{{ securitySummary().sessions }}</dd></div>
+          <div><dt>Support sessions</dt><dd>{{ securitySummary().supportSessions }}</dd></div>
+          <div><dt>Recent audit events</dt><dd>{{ securitySummary().auditEvents }}</dd></div>
+        </dl>
+        <a class="sub-link" routerLink="/security">View security →</a>
+      </article>
+    </section>
+  }
+
+  @if (tab() === 'admins') {
+    <section class="hq-card panel">
+      <div class="panel-head">
+        <h3 class="hq-section-title">Customer administrators</h3>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="users" (click)="openInvite()">Invite admin</button>
+      </div>
+      <div class="admin-list">
+        @for (item of admins(); track item.id) {
+          <div class="admin-card">
+            <div class="avatar" [style.background]="item.avatarColor">{{ initials(item.name) }}</div>
+            <div class="grow">
+              <strong>{{ item.name }}</strong>
+              <p class="hq-muted">{{ item.email }} · {{ item.role }}</p>
+            </div>
+            <span [class]="'hq-badge ' + badgeClass(item.status)">{{ item.status }}</span>
+            <div class="admin-actions">
+              @if (item.status === 'invited') {
+                <button class="hq-btn hq-btn-ghost" type="button" (click)="resendInvite(item.id)">Resend</button>
+              }
+              @if (item.status === 'deactivated') {
+                <button class="hq-btn hq-btn-ghost" type="button" (click)="toggleAdmin(item.id, 'active')">Reactivate</button>
+              } @else if (item.status === 'active') {
+                <button class="hq-btn hq-btn-ghost" type="button" (click)="toggleAdmin(item.id, 'deactivated')">Deactivate</button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'subscription') {
+    <section class="detail-grid two">
+      <article class="hq-card panel">
+        <h3 class="hq-section-title">Subscription & plan</h3>
+        @if (plan(); as currentPlan) {
+          <a class="plan-box" [routerLink]="['/plans', currentPlan.id]">
+            <div>
+              <strong>{{ currentPlan.name }}</strong>
+              <p class="hq-muted">{{ currentPlan.priceMonthly | hqCurrency }}/mo · {{ currentPlan.interval }}</p>
+            </div>
+            <span class="hq-badge hq-badge-trial">{{ currentPlan.featureIds.length }} features</span>
+          </a>
+        }
+        @if (subscription(); as sub) {
+          <a class="sub-link" [routerLink]="['/subscriptions', sub.id]">View subscription details →</a>
+          <dl class="meta">
+            <div><dt>Seats</dt><dd>{{ sub.seats }}</dd></div>
+            <div><dt>Renewal</dt><dd>{{ sub.renewalDate | date: 'mediumDate' }}</dd></div>
+            <div><dt>Payment</dt><dd>{{ sub.paymentStatus }}</dd></div>
+            <div><dt>Amount</dt><dd>{{ sub.amount | hqCurrency }}</dd></div>
+          </dl>
+        }
+      </article>
+      <article class="hq-card panel">
+        <h3 class="hq-section-title">Recent invoices</h3>
+        <div class="invoice-list">
+          @for (inv of data.getInvoicesForOrg(organization.id).slice(0, 5); track inv.id) {
+            <div class="invoice-item">
+              <div>
+                <strong>{{ inv.number }}</strong>
+                <p class="hq-muted">{{ inv.issuedAt | date: 'mediumDate' }}</p>
+              </div>
+              <div class="invoice-right">
+                <span>{{ inv.amount | hqCurrency }}</span>
+                <span [class]="'hq-badge hq-badge-' + (inv.status === 'paid' ? 'active' : inv.status === 'past_due' ? 'cancelled' : 'past_due')">{{ inv.status.replace('_', ' ') }}</span>
+              </div>
+            </div>
+          } @empty {
+            <p class="hq-muted">No invoices yet.</p>
+          }
+        </div>
+        <a class="sub-link" routerLink="/billing">View all billing →</a>
+      </article>
+    </section>
+  }
+
+  @if (tab() === 'features') {
+    <section class="page-toolbar toolbar-end">
+      <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="features" (click)="openFeatureOverride()">Add override</button>
+    </section>
+    <section class="hq-card panel">
+      <h3 class="hq-section-title">Feature access</h3>
+      <p class="hq-muted">Inherited from plan with optional organization-level overrides.</p>
+      <div class="feature-grid wide">
+        @for (row of effectiveFeatures(); track row.feature.id) {
+          <div class="feature-chip" [class.disabled]="!row.enabled">
+            <div class="feature-head">
+              <strong>{{ row.feature.name }}</strong>
+              <span [class]="'hq-badge ' + (row.enabled ? 'hq-badge-active' : 'hq-badge-archived')">
+                {{ row.enabled ? 'enabled' : 'disabled' }}
+              </span>
+            </div>
+            <span>{{ row.feature.category }} · {{ row.source === 'override' ? 'Override' : 'Plan' }}</span>
+            @if (row.source === 'override') {
+              <button class="link-btn" type="button" (click)="removeOverride(row.feature.id)">Remove override</button>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'activity') {
+    <section class="hq-card panel">
+      <h3 class="hq-section-title">Organization activity</h3>
+      <div class="activity-list">
+        @for (event of activity(); track event.id) {
+          <div class="activity-item">
+            <div class="activity-body">
+              <strong>{{ event.action }}</strong>
+              <p class="hq-muted">{{ event.description }}</p>
+            </div>
+            <div class="activity-meta">
+              <span [class]="'hq-badge ' + auditResultClass(event.result)">{{ event.result }}</span>
+              <span>{{ event.timestamp | date: 'medium' }}</span>
+            </div>
+          </div>
+        } @empty {
+          <p class="hq-muted">No activity recorded for this organization.</p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (tab() === 'support') {
+    <section class="hq-card panel">
+      <h3 class="hq-section-title">Support sessions</h3>
+      <div class="admin-list">
+        @for (session of supportSessionsForOrg(); track session.id) {
+          <div class="admin-card">
+            <div class="grow">
+              <strong>{{ session.targetUserName }}</strong>
+              <p class="hq-muted">{{ session.reason }}</p>
+              <p class="hq-muted">{{ session.startedAt | date: 'medium' }} · {{ session.operatorName }}</p>
+            </div>
+            <span [class]="'hq-badge ' + (session.status === 'active' ? 'hq-badge-trial' : 'hq-badge-archived')">{{ session.status }}</span>
+          </div>
+        } @empty {
+          <p class="hq-muted">No support sessions for this organization.</p>
+        }
+      </div>
+    </section>
+  }
+} @else {
+  <section class="hq-card empty">
+    <h2>Organization not found</h2>
+    <p class="hq-muted">This organization may have been removed from the mock dataset.</p>
+    <a routerLink="/organizations" class="hq-btn hq-btn-primary">Back to organizations</a>
+  </section>
+}
+
+@if (showInvite()) {
+  <div class="dialog-backdrop" (click)="cancelInvite()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Invite customer admin</h3>
+        <p class="hq-muted">Send an invitation for {{ org()?.name }}.</p>
+      </div>
+      <div class="dialog-body">
+        <label>Full name<input [value]="inviteName()" (input)="inviteName.set($any($event.target).value)" /></label>
+        <label>Email<input type="email" [value]="inviteEmail()" (input)="inviteEmail.set($any($event.target).value)" /></label>
+        <label>Role<input [value]="inviteRole()" (input)="inviteRole.set($any($event.target).value)" /></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelInvite()">Cancel</button>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="users" (click)="submitInvite()">Send invitation</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmSuspend()) {
+  <div class="dialog-backdrop" (click)="cancelDialog()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Suspend organization</h3>
+        <p class="hq-muted">Provide a reason for the audit trail.</p>
+      </div>
+      <div class="dialog-body">
+        <label>Reason<textarea rows="4" [value]="suspendReason()" (input)="suspendReason.set($any($event.target).value)"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelDialog()">Cancel</button>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="organizations" [disabled]="!suspendReason().trim()" (click)="confirmSuspendAction()">Confirm suspend</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmCancel()) {
+  <div class="dialog-backdrop" (click)="cancelDialog()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Cancel organization</h3>
+        <p class="hq-muted">This will cancel the subscription and stop billing.</p>
+      </div>
+      <div class="dialog-body">
+        <label>Reason<textarea rows="4" [value]="cancelReason()" (input)="cancelReason.set($any($event.target).value)"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelDialog()">Keep active</button>
+        <button class="hq-btn hq-btn-danger" type="button" [disabled]="!cancelReason().trim()" (click)="confirmCancelAction()">Confirm cancel</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmArchive()) {
+  <div class="dialog-backdrop" (click)="cancelDialog()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head">
+        <h3>Archive organization</h3>
+        <p class="hq-muted">Archived organizations are hidden from active operations.</p>
+      </div>
+      <div class="dialog-body">
+        <label>Reason<textarea rows="4" [value]="archiveReason()" (input)="archiveReason.set($any($event.target).value)"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelDialog()">Cancel</button>
+        <button class="hq-btn hq-btn-danger" type="button" [disabled]="!archiveReason().trim()" (click)="confirmArchiveAction()">Confirm archive</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showFeatureOverride()) {
+  <div class="dialog-backdrop" (click)="showFeatureOverride.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head"><h3>Feature access override</h3></div>
+      <div class="dialog-body">
+        <label>Feature<app-hq-select [options]="featureOverrideOptions()" [value]="overrideFeatureId()" (valueChange)="overrideFeatureId.set($event)" /></label>
+        <label class="toggle-row">
+          <input type="checkbox" [checked]="overrideEnabled()" (change)="overrideEnabled.set($any($event.target).checked)" />
+          Enable feature for this organization
+        </label>
+        <label>Reason<textarea rows="3" [value]="overrideReason()" (input)="overrideReason.set($any($event.target).value)"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="showFeatureOverride.set(false)">Cancel</button>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="features" (click)="submitFeatureOverride()">Apply override</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showSupportStart()) {
+  <div class="dialog-backdrop" (click)="showSupportStart.set(false)">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-head"><h3>Start support session</h3><p class="hq-muted">Temporary access for {{ admin()?.name }}.</p></div>
+      <div class="dialog-body">
+        <label>Reason<textarea rows="4" placeholder="Describe why support access is needed..." [value]="supportReason()" (input)="supportReason.set($any($event.target).value)"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="hq-btn hq-btn-ghost" type="button" (click)="showSupportStart.set(false)">Cancel</button>
+        <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="support" [disabled]="!supportReason().trim()" (click)="startSupport()">Start session</button>
+      </div>
+    </div>
+  </div>
+}

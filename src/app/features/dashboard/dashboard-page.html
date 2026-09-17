@@ -1,0 +1,572 @@
+<div class="dashboard-header hq-card">
+  <div class="dashboard-header-copy">
+    <h2 class="hq-section-title">Overview</h2>
+    <p class="hq-muted">{{ dateRangeLabel() }}</p>
+  </div>
+  <div class="dashboard-header-actions">
+    <div class="dashboard-date-filters hq-date-filter-group">
+      <app-hq-select
+        leadingIcon="clock"
+        [closePanelsOnOpen]="true"
+        [options]="dateRangeOptions()"
+        [value]="dateRangePreset()"
+        minWidth="156px"
+        (valueChange)="setDateRange($event)"
+        (opened)="closeQuickActions()"
+      />
+      <app-hq-date-range-picker
+        [startDate]="pickerStartDate()"
+        [endDate]="pickerEndDate()"
+        [maxDate]="pickerMaxDate"
+        [active]="dateRangePreset() === 'custom'"
+        (rangeChange)="onCustomRange($event)"
+        (cleared)="onCustomRangeCleared()"
+        (opened)="closeQuickActions()"
+      />
+    </div>
+    <div class="quick-actions-wrap" [class.open]="quickActionsOpen()">
+      <button
+        class="toolbar-btn outline"
+        type="button"
+        (click)="toggleQuickActions()"
+        [class.active]="quickActionsOpen()"
+        aria-haspopup="true"
+        [attr.aria-expanded]="quickActionsOpen()"
+      >
+        <app-hq-icon name="spark" [size]="14" />
+        Quick actions
+      </button>
+      @if (quickActionsOpen()) {
+        <div class="quick-actions-popover hq-popover" role="menu" aria-label="Quick actions">
+          @for (action of visibleQuickActions(); track action.label) {
+            <a
+              class="hq-popover-item quick-action-item"
+              role="menuitem"
+              [routerLink]="action.link"
+              [queryParams]="action.queryParams ?? null"
+              (click)="closeQuickActions()"
+            >
+              {{ action.label }}
+            </a>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<section class="kpi-row">
+  <a class="kpi-card" routerLink="/organizations" hqRequirePermission="organizations" hqRequirePermissionMin="read">
+    <div class="kpi-icon blue"><app-hq-icon name="orgs" [size]="24" /></div>
+    <div class="kpi-body">
+      <span class="kpi-label">Total Organizations</span>
+      <strong class="kpi-value">{{ kpis().totalOrganizations }}</strong>
+      <span class="kpi-trend up">↑ 2 this month</span>
+    </div>
+  </a>
+  <a class="kpi-card" routerLink="/organizations" [queryParams]="{ status: 'active' }" hqRequirePermission="organizations" hqRequirePermissionMin="read">
+    <div class="kpi-icon teal"><app-hq-icon name="check-circle" [size]="24" /></div>
+    <div class="kpi-body">
+      <span class="kpi-label">Active Organizations</span>
+      <strong class="kpi-value">{{ kpis().activeOrganizations }}</strong>
+      <span class="kpi-trend up">↑ 1 this month</span>
+    </div>
+  </a>
+  <a class="kpi-card" routerLink="/organizations" [queryParams]="{ status: 'trial' }" hqRequirePermission="organizations" hqRequirePermissionMin="read">
+    <div class="kpi-icon orange"><app-hq-icon name="clock" [size]="24" /></div>
+    <div class="kpi-body">
+      <span class="kpi-label">Trial Organizations</span>
+      <strong class="kpi-value">{{ kpis().trialOrganizations }}</strong>
+      <span class="kpi-trend flat">→ 0 this month</span>
+    </div>
+  </a>
+  <a class="kpi-card" routerLink="/users" hqRequirePermission="users" hqRequirePermissionMin="read">
+    <div class="kpi-icon green"><app-hq-icon name="users" [size]="24" /></div>
+    <div class="kpi-body">
+      <span class="kpi-label">Total Users</span>
+      <strong class="kpi-value">{{ kpis().totalUsers | number }}</strong>
+      <span class="kpi-trend up">↑ 120 this month</span>
+    </div>
+  </a>
+  <a class="kpi-card" routerLink="/subscriptions" hqRequirePermission="subscriptions" hqRequirePermissionMin="read">
+    <div class="kpi-icon purple"><app-hq-icon name="billing" [size]="24" /></div>
+    <div class="kpi-body">
+      <span class="kpi-label">MRR</span>
+      <strong class="kpi-value">{{ kpis().mrr | hqCurrency }}</strong>
+      <span class="kpi-trend up">↑ 8% this month</span>
+    </div>
+  </a>
+</section>
+
+<section class="stats-bar hq-card">
+  <a class="stat-item health" routerLink="/subscriptions">
+    <span>Subscription health</span>
+    <div class="health-row">
+      <strong>{{ kpis().subscriptionHealth }}%</strong>
+      <div class="health-meter">
+        <div class="fill" [style.width.%]="kpis().subscriptionHealth"></div>
+      </div>
+    </div>
+  </a>
+  <a class="stat-item" routerLink="/subscriptions" [queryParams]="{ status: 'past_due' }">
+    <span>Failed payments</span>
+    <strong class="warn">{{ kpis().failedPayments }}</strong>
+  </a>
+  <a class="stat-item" routerLink="/usage">
+    <span>Near limits</span>
+    <strong class="warn">{{ kpis().nearLimit }}</strong>
+  </a>
+  <a class="stat-item" routerLink="/support">
+    <span>Open tickets</span>
+    <strong>{{ openTickets() }}</strong>
+  </a>
+  <a class="stat-item status" routerLink="/platform">
+    <span>System status</span>
+    <strong [class.ok]="platformHealth().tone === 'ok'" [class.warn]="platformHealth().tone === 'warn'" [class.danger]="platformHealth().tone === 'danger'">
+      @if (platformHealth().tone === 'ok') { <i class="status-dot"></i> }
+      {{ platformHealth().label }}
+    </strong>
+  </a>
+</section>
+
+<section class="dashboard-row charts-row">
+  <article class="hq-card panel chart-panel">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Revenue Overview</h3>
+        <p class="hq-muted">MRR growth over the last 6 months</p>
+      </div>
+      <app-hq-select
+        [options]="revenuePeriodOptions"
+        [value]="revenuePeriod()"
+        minWidth="148px"
+        (valueChange)="setRevenuePeriod($event)"
+      />
+    </div>
+    <div class="chart-wrap" (mouseleave)="setRevenueHover(null)">
+      <svg
+        class="line-chart revenue-chart"
+        [attr.viewBox]="'0 0 ' + revenueChart.width + ' ' + revenueChart.height"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Revenue overview chart"
+      >
+        <defs>
+          <linearGradient id="revenueAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2563eb" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+
+        @for (line of revenueGridLines(); track line.y) {
+          <line
+            class="grid"
+            [attr.x1]="revenueChart.padLeft"
+            [attr.x2]="revenueChart.width - revenueChart.padRight"
+            [attr.y1]="line.y"
+            [attr.y2]="line.y"
+          />
+        }
+
+        @for (tick of revenueYLabels(); track tick.label) {
+          <text class="y-label" [attr.x]="revenueChart.padLeft - 8" [attr.y]="tick.y + 3" text-anchor="end">
+            {{ tick.label }}
+          </text>
+        }
+
+        <path class="area revenue" [attr.d]="revenueArea()" fill="url(#revenueAreaGrad)" />
+        <path class="line revenue" [attr.d]="revenuePath()" fill="none" />
+
+        @if (revenueHovered(); as tip) {
+          <line
+            class="guide"
+            [attr.x1]="tip.x"
+            [attr.x2]="tip.x"
+            [attr.y1]="revenuePlotTop()"
+            [attr.y2]="revenuePlotBottom()"
+          />
+        }
+
+        @for (point of revenuePoints(); track point.label; let i = $index) {
+          @if (revenueHoverIndex() === i) {
+            <circle class="point-halo revenue" [attr.cx]="point.x" [attr.cy]="point.y" r="12" />
+          }
+          <circle
+            class="point revenue"
+            [class.active]="revenueHoverIndex() === i"
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            r="4.5"
+          />
+          <rect
+            class="hit"
+            [attr.x]="point.x - 32"
+            [attr.y]="revenueChart.padTop"
+            width="64"
+            [attr.height]="revenueChart.height - revenueChart.padTop - revenueChart.padBottom"
+            (mouseenter)="setRevenueHover(i)"
+          />
+          <text
+            class="axis"
+            [attr.x]="point.x"
+            [attr.y]="revenueChart.height - 12"
+            text-anchor="middle"
+          >
+            {{ point.label }}
+          </text>
+        }
+      </svg>
+
+      <div
+        class="chart-tooltip"
+        [class.visible]="!!revenueHovered()"
+        [style.left.%]="revenueTooltipLeft()"
+      >
+        @if (revenueHovered(); as tip) {
+          <span class="tip-label">{{ tip.label }}</span>
+          <strong class="tip-value">{{ tip.value | hqCurrency }}</strong>
+          @if (tip.change !== null) {
+            <span class="tip-change" [class.up]="tip.change >= 0" [class.down]="tip.change < 0">
+              {{ tip.change >= 0 ? '+' : '' }}{{ tip.change }}% vs prior
+            </span>
+          }
+        }
+      </div>
+    </div>
+  </article>
+
+  <article class="hq-card panel chart-panel">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Organization Growth</h3>
+        <p class="hq-muted">Signups vs renewals over the last 10 weeks</p>
+      </div>
+      <div class="legend">
+        <span><i class="dot blue"></i> New Signups</span>
+        <span><i class="dot green"></i> Renewals</span>
+      </div>
+    </div>
+    <div class="chart-wrap" (mouseleave)="setHover(null)">
+      <svg
+        class="bar-chart growth-chart"
+        [attr.viewBox]="'0 0 ' + chart.width + ' ' + chart.height"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Organization growth bar chart"
+      >
+        @for (line of gridLines(); track line.y) {
+          <line
+            class="grid"
+            [attr.x1]="chart.padLeft"
+            [attr.x2]="chart.width - chart.padRight"
+            [attr.y1]="line.y"
+            [attr.y2]="line.y"
+          />
+        }
+
+        @for (tick of growthYLabels(); track tick.label) {
+          <text class="y-label" [attr.x]="chart.padLeft - 8" [attr.y]="tick.y + 4" text-anchor="end">
+            {{ tick.label }}
+          </text>
+        }
+
+        @if (hovered(); as tip) {
+          <line
+            class="guide"
+            [attr.x1]="tip.x"
+            [attr.x2]="tip.x"
+            [attr.y1]="plotTop()"
+            [attr.y2]="plotBottom()"
+          />
+        }
+
+        @for (group of growthBarGroups(); track group.label; let i = $index) {
+          <path class="bar signup" [attr.d]="group.signupPath" />
+          <path class="bar renew" [attr.d]="group.renewPath" />
+          <rect
+            class="hit"
+            [attr.x]="group.hitX"
+            [attr.y]="chart.padTop"
+            [attr.width]="group.hitWidth"
+            [attr.height]="chart.height - chart.padTop - chart.padBottom"
+            (mouseenter)="setHover(i)"
+          />
+          <text class="axis" [attr.x]="group.groupX" [attr.y]="chart.height - 12" text-anchor="middle">
+            {{ group.label }}
+          </text>
+        }
+      </svg>
+
+      <div class="chart-tooltip growth-tooltip" [class.visible]="!!hovered()" [style.left.%]="tooltipLeft()">
+        @if (hovered(); as tip) {
+          <span class="tip-label">{{ tip.label }}</span>
+          <div class="tip-metrics">
+            <div class="tip-metric">
+              <span class="tip-metric-dot signup"></span>
+              <span class="tip-metric-label">New Signups</span>
+              <strong class="tip-metric-value">{{ tip.signups }}</strong>
+            </div>
+            <div class="tip-metric">
+              <span class="tip-metric-dot renew"></span>
+              <span class="tip-metric-label">Renewals</span>
+              <strong class="tip-metric-value">{{ tip.renewals }}</strong>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </article>
+
+  <article class="hq-card panel activity-panel">
+    <div class="panel-head">
+      <h3 class="hq-section-title">Recent Activities</h3>
+      <a routerLink="/security" class="link">View all</a>
+    </div>
+    <div class="activity-list">
+      @for (item of visibleActivity(); track item.id) {
+        <a class="activity-item" [attr.data-tone]="item.tone" [routerLink]="item.link">
+          <div class="activity-icon">
+            <app-hq-icon [name]="activityIcon(item.tone)" [size]="15" />
+          </div>
+          <div class="activity-body">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.description }}</p>
+          </div>
+          <span class="time">{{ item.timeAgo }}</span>
+        </a>
+      }
+    </div>
+  </article>
+</section>
+
+<section class="dashboard-row cols-2">
+  <article class="hq-card panel alerts-panel">
+    <div class="panel-head">
+      <div>
+        <h3 class="hq-section-title">Platform alerts</h3>
+        <p class="hq-muted">Important updates and actions required.</p>
+      </div>
+      <a routerLink="/organizations" [queryParams]="{ status: 'past_due' }" class="link">View all</a>
+    </div>
+    <div class="alerts-list">
+      @if (platformAlerts().length) {
+        <div class="alerts-header" aria-hidden="true">
+          <span>Alert</span>
+          <span>Details</span>
+          <span>Priority</span>
+        </div>
+      }
+      @for (alert of platformAlerts(); track alert.id) {
+        <a
+          class="alerts-item"
+          [routerLink]="alert.actionLink"
+          [queryParams]="alert.actionQueryParams ?? null"
+        >
+          <strong class="alerts-title">{{ alert.title }}</strong>
+          <span class="alerts-meta">{{ alert.description }}</span>
+          <span class="alerts-mobile-meta">{{ alert.description }}</span>
+          <span [class]="'hq-badge ' + alertSeverityBadge(alert.severity)">
+            {{ alertPriorityLabel(alert.severity) }}
+          </span>
+        </a>
+      } @empty {
+        <p class="hq-muted">No active platform alerts.</p>
+      }
+    </div>
+  </article>
+
+  <div class="dashboard-side-stack">
+    <article class="hq-card panel donut-panel">
+      <div class="panel-head">
+        <h3 class="hq-section-title">Subscription Distribution</h3>
+        <a routerLink="/plans" class="link">View plans</a>
+      </div>
+      <div class="donut-wrap">
+        <svg viewBox="0 0 120 120" class="donut-chart" aria-hidden="true">
+          <circle class="donut-track" cx="60" cy="60" r="42" />
+          @for (seg of donutSegments(); track seg.planId; let i = $index) {
+            <circle
+              class="donut-seg"
+              [class.active]="donutHoverIndex() === i"
+              cx="60"
+              cy="60"
+              r="42"
+              [attr.stroke]="seg.color"
+              [attr.stroke-dasharray]="seg.dashArray"
+              [attr.stroke-dashoffset]="seg.dashOffset"
+              transform="rotate(-90 60 60)"
+              (mouseenter)="setDonutHover(i)"
+              (mouseleave)="setDonutHover(null)"
+              (click)="goToPlan(seg.planId)"
+              (keydown.enter)="goToPlan(seg.planId)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'View ' + seg.name + ' organizations'"
+            />
+          }
+          <text x="60" y="57" text-anchor="middle" class="donut-total">{{ kpis().totalOrganizations }}</text>
+          <text x="60" y="70" text-anchor="middle" class="donut-label">orgs</text>
+        </svg>
+        <div class="donut-legend">
+          @for (seg of donutSegments(); track seg.planId; let i = $index) {
+            <a
+              class="legend-row"
+              [class.active]="donutHoverIndex() === i"
+              [routerLink]="['/organizations']"
+              [queryParams]="{ plan: seg.planId }"
+              (mouseenter)="setDonutHover(i)"
+              (mouseleave)="setDonutHover(null)"
+            >
+              <i class="dot" [style.background]="seg.color"></i>
+              <span>{{ seg.name }}</span>
+              <strong>{{ seg.count }} <em>{{ seg.pct }}%</em></strong>
+            </a>
+          }
+        </div>
+      </div>
+    </article>
+
+    <article class="hq-card panel limits-panel">
+      <div class="panel-head">
+        <h3 class="hq-section-title">Near Limits</h3>
+        <a routerLink="/usage" class="link">View all</a>
+      </div>
+      <div class="limits-list">
+        @for (row of nearLimitRows(); track row.org.id) {
+          @let metric = limitMetric(row.org.id);
+          <a class="limit-item" [routerLink]="['/organizations', row.org.id]">
+            <div class="limit-head">
+              <strong>{{ row.org.name }}</strong>
+              <span>{{ metric.used }} / {{ metric.limit }}</span>
+            </div>
+            <span class="limit-type">{{ metric.label }}</span>
+            <div class="limit-meter">
+              <div
+                class="fill"
+                [class.warn]="row.tone === 'near'"
+                [class.danger]="row.tone === 'limit'"
+                [style.width.%]="(metric.used / metric.limit) * 100"
+              ></div>
+            </div>
+          </a>
+        }
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="dashboard-row cols-2">
+  <article class="hq-card panel list-panel">
+    <div class="panel-head">
+      <h3 class="hq-section-title">Recent signups</h3>
+      <a routerLink="/organizations" class="link">View all</a>
+    </div>
+    <div class="mini-list">
+      @for (org of recentSignups(); track org.id) {
+        <a class="mini-item link" [routerLink]="['/organizations', org.id]">
+          <div>
+            <strong>{{ org.name }}</strong>
+            <p class="hq-muted">{{ data.getPlan(org.planId)?.name }} · {{ org.status.replace('_', ' ') }}</p>
+          </div>
+          <span>{{ org.createdAt | date: 'mediumDate' }}</span>
+        </a>
+      } @empty {
+        <p class="hq-muted">No recent signups.</p>
+      }
+    </div>
+  </article>
+
+  <article class="hq-card panel list-panel">
+    <div class="panel-head">
+      <h3 class="hq-section-title">Recent plan changes</h3>
+      <a routerLink="/subscriptions" class="link">View subscriptions</a>
+    </div>
+    <div class="mini-list">
+      @for (change of recentSubscriptionChanges(); track change.id) {
+        <a class="mini-item link" [routerLink]="['/subscriptions', change.subscriptionId]">
+          <div>
+            <strong>{{ data.getPlan(change.fromPlanId)?.name }} → {{ data.getPlan(change.toPlanId)?.name }}</strong>
+            <p class="hq-muted">{{ change.note }}</p>
+          </div>
+          <span>{{ change.changedAt | date: 'mediumDate' }}</span>
+        </a>
+      } @empty {
+        <p class="hq-muted">No recent plan changes.</p>
+      }
+    </div>
+  </article>
+</section>
+
+<section class="dashboard-row cols-2">
+  <article class="hq-card panel table-panel">
+    <div class="panel-head">
+      <h3 class="hq-section-title">Top Organizations</h3>
+      <a routerLink="/organizations" class="link">View all</a>
+    </div>
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Plan</th>
+            <th>Users</th>
+            <th>MRR</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (org of topOrganizations(); track org.id) {
+            <tr class="clickable-row" tabindex="0" (click)="goToOrganization(org.id)" (keydown.enter)="goToOrganization(org.id)">
+              <td>
+                <a class="org-cell" [routerLink]="['/organizations', org.id]" (click)="$event.stopPropagation()">
+                  <span class="org-avatar">{{ org.name.slice(0, 2).toUpperCase() }}</span>
+                  {{ org.name }}
+                </a>
+              </td>
+              <td>{{ data.getPlan(org.planId)?.name }}</td>
+              <td>{{ org.userCount }}</td>
+              <td>{{ org.mrr | hqCurrency }}</td>
+              <td>
+                <span [class]="'hq-badge hq-badge-' + org.status">
+                  {{ org.status.replace('_', ' ') }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="hq-card panel attention-panel">
+    <div class="panel-head">
+      <h3 class="hq-section-title">Requires attention</h3>
+      <a routerLink="/organizations" class="link">View all</a>
+    </div>
+    <div class="attention-list">
+      @if (attentionOrgs().length) {
+        <div class="attention-header" aria-hidden="true">
+          <span>Organization</span>
+          <span>Current plan</span>
+          <span>MRR</span>
+          <span>Time in stage</span>
+          <span>Status</span>
+        </div>
+      }
+      @for (org of attentionOrgs(); track org.id) {
+        <a class="attention-item" [routerLink]="['/organizations', org.id]">
+          <strong class="attention-name">{{ org.name }}</strong>
+          <span class="attention-meta">{{ data.getPlan(org.planId)?.name ?? '—' }}</span>
+          <span class="attention-meta attention-mrr">{{ org.mrr | hqCurrency }}</span>
+          <span class="attention-meta">{{ timeInStage(org) }}</span>
+          <span class="attention-mobile-meta">
+            {{ data.getPlan(org.planId)?.name ?? '—' }} · {{ org.mrr | hqCurrency }} · {{ timeInStage(org) }}
+          </span>
+          <span [class]="'hq-badge hq-badge-' + org.status">{{ org.status.replace('_', ' ') }}</span>
+        </a>
+      } @empty {
+        <p class="hq-muted">All organizations are healthy.</p>
+      }
+    </div>
+  </article>
+</section>

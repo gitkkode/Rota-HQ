@@ -1,0 +1,92 @@
+@if (plan(); as current) {
+  <app-hq-breadcrumbs [items]="breadcrumb()" />
+
+  <section class="hero hq-card">
+    <div>
+      <h2>{{ current.name }}</h2>
+      <p class="hq-muted">
+        {{ current.interval }} billing · updated {{ current.updatedAt | date: 'mediumDate' }}
+      </p>
+    </div>
+    <div class="hero-actions">
+      <div class="price-box">
+        <strong>{{ current.priceMonthly | hqCurrency }}</strong>
+        <span>/ month</span>
+      </div>
+      <a class="hq-btn hq-btn-primary" [routerLink]="['/plans', current.id, 'edit']" hqRequirePermission="plans">Edit plan</a>
+    </div>
+  </section>
+
+  <section class="page-stats">
+    <article class="hq-card page-stat"><span>Seats</span><strong>{{ current.seatsIncluded }}</strong></article>
+    <article class="hq-card page-stat"><span>Locations</span><strong>{{ current.locationsIncluded }}</strong></article>
+    <article class="hq-card page-stat"><span>Features</span><strong>{{ current.featureIds.length }}</strong></article>
+    <article class="hq-card page-stat"><span>Subscribers</span><strong>{{ subscribers().length }}</strong></article>
+  </section>
+
+  <section class="grid">
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Included features</h3>
+      @for (group of featuresByCategory(); track group[0]) {
+        <div class="cat-block">
+          <h4>{{ group[0] }}</h4>
+          <div class="chips">
+            @for (feature of group[1]; track feature.id) {
+              <span class="chip" [class.optional]="feature.optional">{{ feature.name }}</span>
+            }
+          </div>
+        </div>
+      }
+    </article>
+
+    @if (addOnFeatures().length) {
+      <article class="hq-card panel">
+        <h3 class="hq-section-title">Available add-ons</h3>
+        <div class="chips">
+          @for (feature of addOnFeatures(); track feature.id) {
+            <span class="chip optional">{{ feature.name }}</span>
+          }
+        </div>
+      </article>
+    }
+
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Active subscriptions</h3>
+      <div class="sub-list">
+        @for (org of subscribers(); track org.id) {
+          <a class="sub-item" [routerLink]="['/organizations', org.id]">
+            <div>
+              <strong>{{ org.name }}</strong>
+              <p class="hq-muted">{{ org.userCount }} users · {{ org.status.replace('_', ' ') }}</p>
+            </div>
+            <span>{{ org.mrr | hqCurrency }}</span>
+          </a>
+        } @empty {
+          <p class="hq-muted">No organizations currently on this plan.</p>
+        }
+      </div>
+    </article>
+
+    <article class="hq-card panel">
+      <h3 class="hq-section-title">Plan change history</h3>
+      @if (planChanges().length === 0) {
+        <p class="hq-muted">No plan changes involving this plan yet.</p>
+      } @else {
+        <div class="history">
+          @for (item of planChanges(); track item.id) {
+            <div class="history-item">
+              <strong>{{ data.getPlan(item.fromPlanId)?.name }} → {{ data.getPlan(item.toPlanId)?.name }}</strong>
+              <p class="hq-muted">{{ item.note }}</p>
+              <span>{{ item.changedBy }} · {{ item.changedAt | date: 'medium' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </article>
+  </section>
+} @else {
+  <section class="hq-card empty">
+    <h2>Plan not found</h2>
+    <a routerLink="/plans" class="hq-btn hq-btn-primary">Back</a>
+  </section>
+}

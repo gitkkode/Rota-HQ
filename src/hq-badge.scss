@@ -1,0 +1,85 @@
+/* Premium status badges — soft pill, leading dot, matching text */
+
+.hq-badge {
+  --badge-bg: #f8fafc;
+  --badge-dot: #94a3b8;
+  --badge-text: #475569;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-height: 1.5rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  line-height: 1.25;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.hq-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--badge-dot);
+  flex-shrink: 0;
+}
+
+button.hq-badge {
+  cursor: pointer;
+  font: inherit;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+button.hq-badge:hover {
+  opacity: 0.9;
+}
+
+button.hq-badge:active {
+  transform: scale(0.97);
+}
+
+.hq-badge-active {
+  --badge-bg: #ecfdf5;
+  --badge-dot: #22c55e;
+  --badge-text: #15803d;
+}
+
+.hq-badge-trial {
+  --badge-bg: #eff6ff;
+  --badge-dot: #3b82f6;
+  --badge-text: #1d4ed8;
+}
+
+.hq-badge-past_due {
+  --badge-bg: #fff7ed;
+  --badge-dot: #f97316;
+  --badge-text: #c2410c;
+}
+
+.hq-badge-suspended {
+  --badge-bg: #fff7ed;
+  --badge-dot: #ea580c;
+  --badge-text: #9a3412;
+}
+
+.hq-badge-cancelled {
+  --badge-bg: #fef2f2;
+  --badge-dot: #ef4444;
+  --badge-text: #b91c1c;
+}
+
+.hq-badge-archived {
+  --badge-bg: #f1f5f9;
+  --badge-dot: #94a3b8;
+  --badge-text: #475569;
+}

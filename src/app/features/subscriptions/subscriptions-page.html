@@ -1,0 +1,80 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<section class="page-summary">
+  <button class="page-kpi" type="button" [class.active]="effectiveStatus() === 'all'" (click)="setStatusFilter('all')">
+    <span>Subscriptions</span>
+    <strong>{{ summary().total }}</strong>
+  </button>
+  <button class="page-kpi tone-blue" type="button" [class.active]="effectiveStatus() === 'active'" (click)="setStatusFilter('active')">
+    <span>Active</span>
+    <strong>{{ summary().active }}</strong>
+  </button>
+  <button class="page-kpi tone-orange" type="button" [class.active]="effectiveStatus() === 'past_due'" (click)="setStatusFilter('past_due')">
+    <span>Past due</span>
+    <strong>{{ summary().pastDue }}</strong>
+  </button>
+  <article class="page-kpi tone-teal">
+    <span>MRR</span>
+    <strong>{{ summary().mrr | hqCurrency }}</strong>
+  </article>
+</section>
+
+<section class="page-toolbar">
+  <div class="search-box">
+    <input
+      type="search"
+      placeholder="Search by organization or plan..."
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+  </div>
+  <app-hq-select
+    [options]="statusOptions()"
+    [value]="effectiveStatus()"
+    minWidth="156px"
+    (valueChange)="setStatusFilter($event)"
+  />
+</section>
+
+<section class="hq-card table-card">
+  <div class="hq-table-wrap">
+    <table class="hq-table">
+      <thead>
+        <tr>
+          <th>Organization</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Interval</th>
+          <th>Seats</th>
+          <th>Amount</th>
+          <th>Payment</th>
+          <th>Renewal</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of pagedRows(); track row.sub.id) {
+          <tr class="clickable" [routerLink]="['/subscriptions', row.sub.id]">
+            <td>
+              <strong>{{ row.org?.name }}</strong>
+            </td>
+            <td>{{ row.plan?.name }}</td>
+            <td>
+              <span [class]="'hq-badge hq-badge-' + row.sub.status">{{ label(row.sub.status) }}</span>
+            </td>
+            <td>{{ row.sub.interval }}</td>
+            <td>{{ row.sub.seats }}</td>
+            <td>{{ row.sub.amount | hqCurrency }}</td>
+            <td>{{ row.sub.paymentStatus }}</td>
+            <td>{{ row.sub.renewalDate | date: 'mediumDate' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    </div>
+    <app-hq-pagination
+      [page]="page()"
+      [pageSize]="pageSize"
+      [total]="rows().length"
+      (pageChange)="page.set($event)"
+    />
+  </section>

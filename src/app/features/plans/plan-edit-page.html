@@ -1,0 +1,20 @@
+@if (plan(); as current) {
+  <app-hq-breadcrumbs [items]="breadcrumb()" />
+
+  <section class="hq-card panel">
+    <h2 class="hq-section-title">Edit plan — {{ current.name }}</h2>
+    <div class="form-grid cols-2">
+      <label>Name<input [value]="name()" (input)="name.set($any($event.target).value)" /></label>
+      <label>Price (₹/mo)<input type="number" [value]="price()" (input)="price.set(+$any($event.target).value)" /></label>
+      <label>Seats<input type="number" [value]="seats()" (input)="seats.set(+$any($event.target).value)" /></label>
+      <label>Locations<input type="number" [value]="locations()" (input)="locations.set(+$any($event.target).value)" /></label>
+    </div>
+    <div class="actions">
+      <button class="hq-btn hq-btn-ghost warn" type="button" (click)="retire()">Retire plan</button>
+      <a class="hq-btn hq-btn-ghost" routerLink="/plans/{{ current.id }}">Cancel</a>
+      <button class="hq-btn hq-btn-primary" type="button" (click)="save()">Save changes</button>
+    </div>
+  </section>
+} @else {
+  <section class="hq-card empty"><h2>Plan not found</h2><a routerLink="/plans" class="hq-btn hq-btn-primary">Back</a></section>
+}

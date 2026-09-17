@@ -1,0 +1,211 @@
+<section class="create-hero hq-card">
+  <div class="create-hero-main">
+    <a routerLink="/plans" class="back">← Plans &amp; Features</a>
+    <h2>Create plan</h2>
+    <p class="hq-muted">
+      Define pricing, capacity limits, billing cycle, and the full feature catalogue for a new
+      Workforce HQ plan — matching the detail view customers see on assignment.
+    </p>
+  </div>
+  <div class="create-hero-actions">
+    <button class="hq-btn hq-btn-ghost" type="button" (click)="cancel()">Cancel</button>
+    <button
+      class="hq-btn hq-btn-primary"
+      type="button"
+      [disabled]="!canSubmit()"
+      (click)="submit()"
+    >
+      {{ submitting() ? 'Creating…' : 'Create plan' }}
+    </button>
+  </div>
+</section>
+
+<div class="create-layout">
+  <div class="create-main">
+    <article class="hq-card form-section">
+      <header class="section-head">
+        <h3 class="hq-section-title">Plan profile</h3>
+        <p class="hq-muted">Name, visibility, and billing cycle shown on the plan catalogue.</p>
+      </header>
+      <div class="form-grid cols-2">
+        <label class="full">
+          Plan name <span class="req">*</span>
+          <input
+            placeholder="e.g. Growth Plus"
+            [value]="name()"
+            (input)="name.set($any($event.target).value)"
+          />
+        </label>
+        <label>
+          Status
+          <app-hq-select
+            [options]="statusOptions"
+            [value]="status()"
+            (valueChange)="setStatus($event)"
+          />
+        </label>
+        <label>
+          Billing interval
+          <app-hq-select
+            [options]="intervalOptions"
+            [value]="interval()"
+            (valueChange)="setInterval($event)"
+          />
+        </label>
+      </div>
+    </article>
+
+    <article class="hq-card form-section">
+      <header class="section-head">
+        <h3 class="hq-section-title">Pricing &amp; capacity</h3>
+        <p class="hq-muted">Monthly price and included seats/locations for subscriptions.</p>
+      </header>
+      <div class="form-grid cols-2">
+        <label>
+          Monthly price (INR) <span class="req">*</span>
+          <input
+            type="number"
+            min="1"
+            [value]="priceMonthly()"
+            (input)="priceMonthly.set(+$any($event.target).value)"
+          />
+        </label>
+        <label>
+          Seats included <span class="req">*</span>
+          <input
+            type="number"
+            min="1"
+            [value]="seatsIncluded()"
+            (input)="seatsIncluded.set(+$any($event.target).value)"
+          />
+        </label>
+        <label>
+          Locations included <span class="req">*</span>
+          <input
+            type="number"
+            min="1"
+            [value]="locationsIncluded()"
+            (input)="locationsIncluded.set(+$any($event.target).value)"
+          />
+        </label>
+      </div>
+      @if (interval() === 'yearly') {
+        <p class="plan-hint hq-muted">
+          Yearly plans bill annually. Equivalent ~{{ yearlyEquivalent() | hqCurrency }}/yr
+          at listed monthly rate.
+        </p>
+      }
+    </article>
+
+    <article class="hq-card form-section">
+      <header class="section-head feature-head">
+        <div>
+          <h3 class="hq-section-title">Included features</h3>
+          <p class="hq-muted">
+            Select capabilities bundled with this plan — grouped as on the plan detail page.
+          </p>
+        </div>
+        <div class="feature-actions">
+          <button class="link-btn" type="button" (click)="selectCoreFeatures()">Core only</button>
+          <button class="link-btn" type="button" (click)="selectAllFeatures()">Select all</button>
+          <button class="link-btn" type="button" (click)="clearFeatures()">Clear</button>
+        </div>
+      </header>
+
+      @for (group of featuresByCategory(); track group[0]) {
+        <div class="feature-category">
+          <div class="category-top">
+            <h4>{{ group[0] }}</h4>
+            <button
+              class="link-btn"
+              type="button"
+              (click)="selectCategoryFeatures(group[0], !isCategoryFullySelected(group[0]))"
+            >
+              {{ isCategoryFullySelected(group[0]) ? 'Deselect all' : 'Select all' }}
+            </button>
+          </div>
+          <div class="feature-options">
+            @for (feature of group[1]; track feature.id) {
+              <label class="feature-option" [class.selected]="isFeatureSelected(feature.id)">
+                <input
+                  type="checkbox"
+                  [checked]="isFeatureSelected(feature.id)"
+                  (change)="toggleFeature(feature.id)"
+                />
+                <span class="feature-copy">
+                  <strong>{{ feature.name }}</strong>
+                  <span class="hq-muted">{{ feature.description }}</span>
+                  <span class="feature-meta">
+                    {{ feature.optional ? 'Optional add-on' : 'Core' }} · {{ feature.status }}
+                  </span>
+                </span>
+              </label>
+            }
+          </div>
+        </div>
+      }
+    </article>
+
+    <article class="hq-card form-section">
+      <header class="section-head">
+        <h3 class="hq-section-title">Internal notes</h3>
+        <p class="hq-muted">Optional context for the audit trail (not shown to customers).</p>
+      </header>
+      <label class="full">
+        Notes
+        <textarea
+          rows="3"
+          placeholder="Pricing rationale, launch checklist, migration notes…"
+          [value]="notes()"
+          (input)="notes.set($any($event.target).value)"
+        ></textarea>
+      </label>
+    </article>
+  </div>
+
+  <aside class="create-aside">
+    <article class="hq-card preview-card">
+      <h3 class="hq-section-title">Live preview</h3>
+
+      <div class="preview-price">
+        <strong>{{ priceMonthly() | hqCurrency }}</strong>
+        <span>/ month</span>
+      </div>
+
+      <div class="preview-org">
+        <div>
+          <strong>{{ name().trim() || 'Plan name' }}</strong>
+          <p class="hq-muted">{{ interval() }} billing · {{ status() }}</p>
+        </div>
+        <span [class]="'hq-badge ' + (status() === 'active' ? 'hq-badge-active' : 'hq-badge-trial')">
+          {{ status() }}
+        </span>
+      </div>
+
+      <div class="preview-stats">
+        <div><span>Seats</span><strong>{{ seatsIncluded() }}</strong></div>
+        <div><span>Locations</span><strong>{{ locationsIncluded() }}</strong></div>
+        <div><span>Features</span><strong>{{ selectedFeatureIds().length }}</strong></div>
+        <div><span>Subscribers</span><strong>0</strong></div>
+      </div>
+
+      <div class="preview-block">
+        <span class="preview-label">Included features</span>
+        @if (selectedByCategory().length) {
+          @for (group of selectedByCategory(); track group[0]) {
+            <div class="preview-cat">
+              <h5>{{ group[0] }}</h5>
+              <div class="feature-chips">
+                @for (feature of group[1]; track feature.id) {
+                  <span class="feature-chip" [class.optional]="feature.optional">{{ feature.name }}</span>
+                }
+              </div>
+            </div>
+          }
+        } @else {
+          <p class="hq-muted">Select at least one feature.</p>
+        }
+      </div>
+    </article>
+  </aside>
+</div>

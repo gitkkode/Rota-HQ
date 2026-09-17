@@ -1,0 +1,8 @@
+:host { display: block; }
+.hero { padding: 1.25rem; margin-bottom: 1rem; }
+.hero h2 { margin: 0; }
+.panel { padding: 1.2rem; margin-bottom: 1rem; }
+.meter, .api-meter { height: 8px; border-radius: 999px; background: #f3f4f6; overflow: hidden; margin-top: 0.35rem; }
+.meter > div, .api-meter > div { height: 100%; background: #3b82f6; border-radius: inherit; }
+.api-panel span { display: block; margin-top: 0.5rem; font-size: 0.84rem; color: var(--hq-text-muted); }
+.empty { padding: 2rem; text-align: center; }

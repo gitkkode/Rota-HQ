@@ -1,0 +1,212 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'sessions'" (click)="tab.set('sessions')">Sessions</button>
+  <button type="button" [class.active]="tab() === 'activity'" (click)="tab.set('activity')">Activity history</button>
+</app-hq-page-tabs>
+
+@if (tab() === 'sessions') {
+<section class="page-summary cols-3">
+  <button class="page-kpi tone-blue" type="button" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all')">
+    <span>Total sessions</span>
+    <strong>{{ summary().total }}</strong>
+  </button>
+  <button class="page-kpi tone-amber" type="button" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active')">
+    <span>Active now</span>
+    <strong>{{ summary().active }}</strong>
+  </button>
+  <button class="page-kpi" type="button" [class.active]="statusFilter() === 'ended'" (click)="statusFilter.set('ended')">
+    <span>Ended</span>
+    <strong>{{ summary().ended }}</strong>
+  </button>
+</section>
+
+@if (data.activeSupportSession(); as active) {
+  <section class="active-banner hq-card">
+    <div>
+      <strong>Support session in progress</strong>
+      <p>
+        {{ data.getOrganization(active.organizationId)?.name }} · {{ active.targetUserName }} ·
+        expires {{ active.endsAt | date: 'shortTime' }}
+      </p>
+      <p class="hq-muted">{{ active.reason }}</p>
+    </div>
+    <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="support" (click)="endSession(active.id)">
+      Exit support session
+    </button>
+  </section>
+}
+
+<section class="page-toolbar">
+  <div class="search-box">
+    <input
+      type="search"
+      placeholder="Search organization, user, operator, reason..."
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+  </div>
+  <div class="toolbar-actions">
+    <app-hq-select
+      [options]="statusOptions"
+      [value]="statusFilter()"
+      minWidth="156px"
+      (valueChange)="setStatusFilter($event)"
+    />
+    <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="support" (click)="openStart()">
+      Start support session
+    </button>
+  </div>
+</section>
+
+<section class="hq-card table-card">
+  <div class="hq-table-wrap">
+    <table class="hq-table">
+      <thead>
+        <tr>
+          <th>Organization</th>
+          <th>Target user</th>
+          <th>Operator</th>
+          <th>Reason</th>
+          <th>Started</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (session of sessions(); track session.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/organizations', session.organizationId]">
+                {{ data.getOrganization(session.organizationId)?.name }}
+              </a>
+            </td>
+            <td>
+              <strong>{{ session.targetUserName }}</strong>
+              <span class="sub">{{ session.targetUserEmail }}</span>
+            </td>
+            <td>{{ session.operatorName }}</td>
+            <td class="reason">{{ session.reason }}</td>
+            <td>{{ session.startedAt | date: 'medium' }}</td>
+            <td>
+              <span
+                [class]="
+                  'hq-badge ' +
+                  (session.status === 'active' ? 'hq-badge-past_due' : 'hq-badge-archived')
+                "
+              >
+                {{ session.status }}
+              </span>
+            </td>
+            <td>
+              @if (session.status === 'active') {
+                <button class="hq-btn hq-btn-ghost" type="button" (click)="endSession(session.id)">
+                  End
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="empty">No support sessions yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+} @else {
+  <section class="hq-card panel">
+    <h3 class="hq-section-title">Support activity</h3>
+    <p class="hq-muted">Recent support sessions and related audit events.</p>
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+          @for (event of supportAudit(); track event.id) {
+            <tr>
+              <td>{{ event.timestamp | date: 'medium' }}</td>
+              <td>{{ event.actor }}</td>
+              <td><strong>{{ event.action }}</strong></td>
+              <td>{{ event.description }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="empty">No support activity recorded.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}
+
+@if (showStart()) {
+  <div class="dialog-backdrop" (click)="cancelStart()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      @if (!confirmStep()) {
+        <div class="dialog-head">
+          <h3>Start support session</h3>
+          <p class="hq-muted">
+            Temporary access requires a reason and confirmation. Activity is written to the audit trail.
+          </p>
+        </div>
+        <div class="dialog-body">
+          <label>
+            Organization
+            <app-hq-select
+              [options]="orgOptions()"
+              [value]="orgId()"
+              (valueChange)="onOrgChange($event)"
+            />
+          </label>
+          <label>
+            Target user
+            @if (userOptions().length) {
+              <app-hq-select
+                [options]="userOptions()"
+                [value]="targetUserId()"
+                (valueChange)="onUserChange($event)"
+              />
+            } @else {
+              <input [value]="targetUser()" (input)="targetUser.set($any($event.target).value)" />
+            }
+          </label>
+          <label>
+            Target email
+            <input type="email" [value]="targetEmail()" (input)="targetEmail.set($any($event.target).value)" />
+          </label>
+          <label>
+            Reason
+            <textarea
+              rows="3"
+              [value]="reason()"
+              (input)="reason.set($any($event.target).value)"
+              placeholder="Why is support access required?"
+            ></textarea>
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button class="hq-btn hq-btn-ghost" type="button" (click)="cancelStart()">Cancel</button>
+          <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="support" (click)="goConfirm()">Continue</button>
+        </div>
+      } @else {
+        <div class="dialog-head">
+          <h3>Confirm support access</h3>
+        </div>
+        <div class="dialog-body">
+          <div class="confirm-box">
+            <p><strong>Organization:</strong> {{ data.getOrganization(orgId())?.name }}</p>
+            <p><strong>User:</strong> {{ targetUser() }} ({{ targetEmail() }})</p>
+            <p><strong>Reason:</strong> {{ reason() }}</p>
+            <p class="hq-muted">Session expires in 60 minutes and can be ended at any time.</p>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="hq-btn hq-btn-ghost" type="button" (click)="confirmStep.set(false)">Back</button>
+          <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="support" (click)="startSession()">
+            Start temporary session
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

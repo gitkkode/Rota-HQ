@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+.read-only-note {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--hq-radius-sm);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1.15rem 1.2rem;
+  color: inherit;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.role-card:hover {
+  box-shadow: var(--hq-shadow);
+  transform: translateY(-1px);
+}
+
+.role-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.role-top h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.role-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--hq-text-muted);
+}
+
+.matrix-toolbar {
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  overflow: visible;
+}
+
+.matrix-toolbar-copy {
+  margin: 0;
+  font-size: 0.84rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.matrix-role-label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  margin-right: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--hq-text-muted);
+}
+
+.matrix-role-label app-hq-select {
+  display: block;
+  width: 220px;
+}
+
+.matrix-table .desc {
+  color: var(--hq-text-muted);
+  font-size: 0.82rem;
+}
+
+.level-btn {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-transform: capitalize;
+}
+
+@media (max-width: 1100px) {
+  .role-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .matrix-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .matrix-role-label {
+    justify-content: space-between;
+  }
+}

@@ -1,0 +1,13 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<section class="hq-card denied-card">
+  <h2>Access denied</h2>
+  <p class="hq-muted">
+    Your HQ role does not include permission to view this area. If you believe this is a mistake,
+    contact a Super Admin to review your role on the Permissions page.
+  </p>
+  <div class="denied-actions">
+    <a class="hq-btn hq-btn-primary" routerLink="/dashboard">Go to dashboard</a>
+    <a class="hq-btn hq-btn-secondary" routerLink="/dashboard">Dashboard</a>
+  </div>
+</section>

@@ -1,0 +1,93 @@
+<app-hq-breadcrumbs [items]="breadcrumb" />
+
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'roles'" (click)="tab.set('roles')">HQ Roles</button>
+  <button type="button" [class.active]="tab() === 'matrix'" (click)="tab.set('matrix')">
+    Permission matrix
+  </button>
+</app-hq-page-tabs>
+
+@if (!perms.canEditPermissions()) {
+  <p class="hq-muted read-only-note">
+    You have read-only access to HQ roles. Permission changes require write access on the Permissions category.
+  </p>
+}
+
+@if (tab() === 'roles') {
+  <section class="role-grid">
+    @for (role of data.hqRoles(); track role.id) {
+      <a class="hq-card role-card" [routerLink]="['/permissions', role.id]">
+        <div class="role-top">
+          <h3>{{ role.name }}</h3>
+          <span class="hq-badge hq-badge-active">{{ role.operatorCount }} operators</span>
+        </div>
+        <p class="hq-muted">{{ role.description }}</p>
+        <div class="role-foot">
+          <span>Updated {{ role.updatedAt | date: 'mediumDate' }}</span>
+          <span class="hq-link">View role →</span>
+        </div>
+      </a>
+    }
+  </section>
+} @else {
+  <section class="page-toolbar matrix-toolbar">
+    <p class="matrix-toolbar-copy hq-muted">View and edit access levels for each HQ role.</p>
+    <label class="matrix-role-label">
+      Role
+      <app-hq-select
+        [options]="matrixRoleOptions()"
+        [value]="matrixRoleId()"
+        minWidth="220px"
+        menuAlign="end"
+        (valueChange)="setMatrixRole($event)"
+      />
+    </label>
+  </section>
+
+  @if (selectedMatrixRole(); as role) {
+    <section class="hq-card table-card">
+      <div class="table-head">
+        <div>
+          <h2 class="hq-section-title">{{ role.name }} — permissions</h2>
+          <p class="hq-muted">{{ role.description }}</p>
+        </div>
+        <a class="hq-link" [routerLink]="['/permissions', role.id]">Open role detail →</a>
+      </div>
+      <div class="hq-table-wrap">
+        <table class="hq-table matrix-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Access level</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cat of data.permissionCategories; track cat.key) {
+              <tr>
+                <td><strong>{{ cat.label }}</strong></td>
+                <td class="desc">{{ cat.description }}</td>
+                <td>
+                  @if (perms.canEditPermissions()) {
+                    <button
+                      type="button"
+                      class="level-btn"
+                      [class]="'hq-badge ' + permissionClass(role.permissions[cat.key])"
+                      (click)="cyclePermission(role.id, cat.key, role.permissions[cat.key])"
+                    >
+                      {{ role.permissions[cat.key] }}
+                    </button>
+                  } @else {
+                    <span [class]="'hq-badge ' + permissionClass(role.permissions[cat.key])">
+                      {{ role.permissions[cat.key] }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

@@ -1,0 +1,215 @@
+<app-hq-page-tabs>
+  <button type="button" [class.active]="tab() === 'settings'" (click)="tab.set('settings')">
+    General settings
+  </button>
+  <button type="button" [class.active]="tab() === 'flags'" (click)="tab.set('flags')">
+    Feature flags
+  </button>
+  <button type="button" [class.active]="tab() === 'integrations'" (click)="tab.set('integrations')">
+    Integrations
+  </button>
+</app-hq-page-tabs>
+
+@if (tab() === 'settings') {
+  <section class="hq-card panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="hq-section-title">Platform configuration</h2>
+        <p class="hq-muted">Defaults for trials, sessions, and operational notifications.</p>
+      </div>
+      @if (saved()) {
+        <span class="hq-badge hq-badge-active">Saved</span>
+      }
+    </div>
+
+    <div class="form-grid">
+      <label>
+        Platform name
+        <input [value]="draft().platformName" (input)="updateField('platformName', $any($event.target).value)" />
+      </label>
+      <label>
+        Support email
+        <input
+          type="email"
+          [value]="draft().supportEmail"
+          (input)="updateField('supportEmail', $any($event.target).value)"
+        />
+      </label>
+      <label>
+        Default timezone
+        <app-hq-select
+          [options]="timezoneOptions"
+          [value]="draft().defaultTimezone"
+          (valueChange)="updateField('defaultTimezone', $event)"
+        />
+      </label>
+      <label>
+        Default locale
+        <app-hq-select
+          [options]="localeOptions"
+          [value]="draft().defaultLocale"
+          (valueChange)="updateField('defaultLocale', $event)"
+        />
+      </label>
+      <label>
+        Default trial days
+        <input
+          type="number"
+          min="1"
+          [value]="draft().defaultTrialDays"
+          (input)="updateField('defaultTrialDays', +$any($event.target).value)"
+        />
+      </label>
+      <label>
+        HQ session timeout (minutes)
+        <input
+          type="number"
+          min="5"
+          [value]="draft().sessionTimeoutMinutes"
+          (input)="updateField('sessionTimeoutMinutes', +$any($event.target).value)"
+        />
+      </label>
+    </div>
+
+    <div class="toggles">
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="draft().maintenanceMode"
+          (change)="updateField('maintenanceMode', $any($event.target).checked)"
+        />
+        <span>
+          <strong>Maintenance mode</strong>
+          <small>Show maintenance notice across tenant portals</small>
+        </span>
+      </label>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="draft().requireMfaForHq"
+          (change)="updateField('requireMfaForHq', $any($event.target).checked)"
+        />
+        <span>
+          <strong>Require MFA for HQ operators</strong>
+          <small>Placeholder policy for future auth integration</small>
+        </span>
+      </label>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="draft().notifyOnPaymentFailure"
+          (change)="updateField('notifyOnPaymentFailure', $any($event.target).checked)"
+        />
+        <span>
+          <strong>Notify on payment failure</strong>
+          <small>Create HQ notifications when invoices fail</small>
+        </span>
+      </label>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="draft().notifyOnTrialExpiry"
+          (change)="updateField('notifyOnTrialExpiry', $any($event.target).checked)"
+        />
+        <span>
+          <strong>Notify on trial expiry</strong>
+          <small>Alert operators before trials end</small>
+        </span>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="hq-btn hq-btn-ghost" type="button" hqRequirePermission="settings" (click)="refreshDraft()">Reset</button>
+      <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="settings" (click)="saveSettings()">Save settings</button>
+    </div>
+  </section>
+} @else if (tab() === 'flags') {
+  <p class="page-intro hq-muted">
+    Gradual rollout controls for platform-wide features — enable flags globally or release to a percentage of tenants before full launch.
+  </p>
+  <section class="hq-card table-card">
+    <div class="hq-table-wrap">
+      <table class="hq-table">
+        <thead>
+          <tr>
+            <th>Flag</th>
+            <th>Key</th>
+            <th>Environment</th>
+            <th>Rollout</th>
+            <th>Updated</th>
+            <th>Enabled</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (flag of data.featureFlags(); track flag.id) {
+            <tr>
+              <td>
+                <strong>{{ flag.name }}</strong>
+                <span class="desc">{{ flag.description }}</span>
+              </td>
+              <td><code>{{ flag.key }}</code></td>
+              <td>{{ flag.environment }}</td>
+              <td>
+                <div class="rollout">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    [value]="flag.rolloutPercent"
+                    (input)="previewRollout(flag.id, $any($event.target).value)"
+                    (change)="commitRollout(flag.id, $any($event.target).value)"
+                  />
+                  <span>{{ flag.rolloutPercent }}%</span>
+                </div>
+              </td>
+              <td>{{ flag.updatedAt | date: 'mediumDate' }}</td>
+              <td>
+                <button
+                  class="switch"
+                  type="button"
+                  hqRequirePermission="settings"
+                  [class.on]="flag.enabled"
+                  (click)="toggleFlag(flag.id)"
+                  [attr.aria-pressed]="flag.enabled"
+                >
+                  <span></span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+} @else {
+  <section class="integration-grid">
+    @for (item of data.integrations(); track item.id) {
+      <article class="hq-card integration-card">
+        <div class="integration-top">
+          <h3>{{ item.name }}</h3>
+          <span
+            [class]="
+              'hq-badge ' +
+              (item.status === 'connected'
+                ? 'hq-badge-active'
+                : item.status === 'available'
+                  ? 'hq-badge-trial'
+                  : 'hq-badge-archived')
+            "
+          >
+            {{ item.status.replace('_', ' ') }}
+          </span>
+        </div>
+        <p class="category">{{ item.category }}</p>
+        <p class="hq-muted">{{ item.description }}</p>
+        @if (item.status === 'connected') {
+          <button class="hq-btn hq-btn-ghost" type="button" disabled>Configure</button>
+        } @else if (item.status === 'available') {
+          <button class="hq-btn hq-btn-primary" type="button" hqRequirePermission="settings" (click)="connect(item.id)">Connect</button>
+        } @else {
+          <span class="hq-muted coming">Coming soon</span>
+        }
+      </article>
+    }
+  </section>
+}
